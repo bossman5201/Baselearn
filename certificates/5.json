@@ -1,0 +1,11 @@
+{
+  "name": "Learn Base Master Certificate",
+  "description": "Awarded for completing all Learn Base tracks.",
+  "image": "https://baselearn.vercel.app/icon.png",
+  "external_url": "https://baselearn.vercel.app/",
+  "attributes": [
+    { "trait_type": "Track", "value": "All" },
+    { "trait_type": "Level", "value": "Master" },
+    { "trait_type": "Type", "value": "Learn Base Certificate" }
+  ]
+}

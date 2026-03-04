@@ -1,0 +1,11 @@
+{
+  "name": "Base Safety Certificate",
+  "description": "Awarded for completing the Safety track in Learn Base.",
+  "image": "https://baselearn.vercel.app/icon.png",
+  "external_url": "https://baselearn.vercel.app/",
+  "attributes": [
+    { "trait_type": "Track", "value": "Safety" },
+    { "trait_type": "Level", "value": "Beginner" },
+    { "trait_type": "Type", "value": "Learn Base Certificate" }
+  ]
+}

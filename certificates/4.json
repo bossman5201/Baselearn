@@ -1,0 +1,11 @@
+{
+  "name": "Base Technical Certificate",
+  "description": "Awarded for completing the Technical track in Learn Base.",
+  "image": "https://baselearn.vercel.app/icon.png",
+  "external_url": "https://baselearn.vercel.app/",
+  "attributes": [
+    { "trait_type": "Track", "value": "Technical" },
+    { "trait_type": "Level", "value": "Technical" },
+    { "trait_type": "Type", "value": "Learn Base Certificate" }
+  ]
+}

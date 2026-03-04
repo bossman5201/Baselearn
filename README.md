@@ -28,6 +28,7 @@ Content-first Base mini app with safe lessons, quizzes, optional certificates, a
 - `.env.example`: required environment variables
 - `contracts/`: certificate smart contract (Base-ready)
 - `scripts/`: Hardhat deployment scripts
+- `certificates/`: token metadata JSON used by certificate contract URIs
 - `GITHUB_VERCEL_SETUP.md`: exact setup checklist
 - `BRANDING_PROMPTS.md`: image generation prompts
 - `CONTRACT_SAFETY.md`: security and deployment notes

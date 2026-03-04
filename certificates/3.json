@@ -1,0 +1,11 @@
+{
+  "name": "Base Concepts Certificate",
+  "description": "Awarded for completing the DeFi and NFT Concepts track in Learn Base.",
+  "image": "https://baselearn.vercel.app/icon.png",
+  "external_url": "https://baselearn.vercel.app/",
+  "attributes": [
+    { "trait_type": "Track", "value": "Concepts" },
+    { "trait_type": "Level", "value": "Intermediate" },
+    { "trait_type": "Type", "value": "Learn Base Certificate" }
+  ]
+}
