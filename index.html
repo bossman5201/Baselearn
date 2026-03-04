@@ -1,0 +1,41 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Learn Base Mini App</title>
+  <meta name="description" content="A safe, beginner-first mini app to learn Base from basics to technical concepts." />
+  <meta name="theme-color" content="#0b4cff" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-mark" aria-hidden="true"></div>
+      <div class="brand-copy">
+        <h1>Learn Base</h1>
+        <p>Safe lessons from zero to technical</p>
+      </div>
+      <button id="view-progress" class="ghost-button" type="button">Progress</button>
+    </header>
+
+    <main id="app" class="app-main" aria-live="polite"></main>
+
+    <nav class="bottom-nav" aria-label="Main navigation">
+      <button class="nav-button active" data-route="home" type="button">Home</button>
+      <button class="nav-button" data-route="tracks" type="button">Tracks</button>
+      <button class="nav-button" data-route="certs" type="button">Certificates</button>
+      <button class="nav-button" data-route="about" type="button">About</button>
+    </nav>
+  </div>
+
+  <template id="empty-state-template">
+    <section class="card empty-state">
+      <h2>No results</h2>
+      <p>Try a different search term.</p>
+    </section>
+  </template>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
