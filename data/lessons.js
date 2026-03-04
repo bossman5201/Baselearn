@@ -1,4 +1,4 @@
-﻿export const TRACKS = [
+export const TRACKS = [
   {
     id: "fundamentals",
     title: "Base Fundamentals",

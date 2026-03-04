@@ -1,4 +1,4 @@
-﻿# Branding Prompts for Gemini
+# Branding Prompts for Gemini
 
 Use these exactly, then export PNG files in requested sizes.
 

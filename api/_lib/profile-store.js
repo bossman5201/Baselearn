@@ -1,4 +1,4 @@
-﻿const { kv } = require("@vercel/kv");
+const { kv } = require("@vercel/kv");
 
 const LESSON_KEY_PREFIX = "learnbase:profile:";
 

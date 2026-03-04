@@ -1,4 +1,4 @@
-﻿function sendJson(res, statusCode, payload) {
+function sendJson(res, statusCode, payload) {
   return res.status(statusCode).json(payload);
 }
 

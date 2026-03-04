@@ -1,4 +1,4 @@
-﻿const { ethers } = require("hardhat");
+const { ethers } = require("hardhat");
 
 function requiredAddress(name, value) {
   if (!value || !ethers.isAddress(value)) {

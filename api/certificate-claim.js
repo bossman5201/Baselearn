@@ -1,4 +1,4 @@
-﻿const { sendJson, readJsonBody, methodNotAllowed, validateRequiredString } = require("./_lib/http");
+const { sendJson, readJsonBody, methodNotAllowed, validateRequiredString } = require("./_lib/http");
 const { addCertificateClaim, sanitizeLearnerId, isStorageReady } = require("./_lib/profile-store");
 
 module.exports = async function handler(req, res) {

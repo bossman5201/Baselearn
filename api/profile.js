@@ -1,4 +1,4 @@
-﻿const { sendJson, methodNotAllowed } = require("./_lib/http");
+const { sendJson, methodNotAllowed } = require("./_lib/http");
 const { getProfile, sanitizeLearnerId, isStorageReady } = require("./_lib/profile-store");
 
 module.exports = async function handler(req, res) {

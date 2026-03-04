@@ -1,4 +1,4 @@
-﻿# Founder Hand-off: What I Need From You
+# Founder Hand-off: What I Need From You
 
 I can take this live as soon as you provide these items.
 

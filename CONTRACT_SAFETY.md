@@ -1,4 +1,4 @@
-﻿# Certificate Contract Safety Plan
+# Certificate Contract Safety Plan
 
 Contract file:
 - `contracts/LearnBaseCertificate.sol`

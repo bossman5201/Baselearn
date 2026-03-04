@@ -1,4 +1,4 @@
-﻿# Base Docs Notes (Accuracy Baseline)
+# Base Docs Notes (Accuracy Baseline)
 
 Date checked: March 4, 2026
 

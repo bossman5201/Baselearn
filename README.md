@@ -1,4 +1,4 @@
-﻿# Learn Base Mini App
+# Learn Base Mini App
 
 Content-first Base mini app with safe lessons, quizzes, optional certificates, and cloud sync support.
 

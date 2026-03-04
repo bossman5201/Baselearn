@@ -1,4 +1,4 @@
-﻿# GitHub + Vercel Setup (Your Exact Next Steps)
+# GitHub + Vercel Setup (Your Exact Next Steps)
 
 ## A) Push current code to your repo
 

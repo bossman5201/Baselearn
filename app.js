@@ -1,4 +1,4 @@
-﻿import { TRACKS, LESSONS, CERTIFICATES, SPONSOR_POLICY } from "./data/lessons.js";
+import { TRACKS, LESSONS, CERTIFICATES, SPONSOR_POLICY } from "./data/lessons.js";
 
 const APP_CONFIG = {
   paymentMode: "demo", // "demo" or "base-pay"
