@@ -26,6 +26,11 @@ Content-first Base mini app with safe lessons, quizzes, optional certificates, a
 - `api/`: Vercel serverless functions
 - `.well-known/farcaster.json`: mini app manifest scaffold
 - `.env.example`: required environment variables
+- `contracts/`: certificate smart contract (Base-ready)
+- `scripts/`: Hardhat deployment scripts
+- `GITHUB_VERCEL_SETUP.md`: exact setup checklist
+- `BRANDING_PROMPTS.md`: image generation prompts
+- `CONTRACT_SAFETY.md`: security and deployment notes
 
 ## Environment variables
 
@@ -56,6 +61,15 @@ Set these in Vercel Project Settings -> Environment Variables:
 
 - Certificate payment mode is currently `demo` in frontend.
 - Real Base Pay checkout is the next integration step.
+
+## Smart contract status
+
+- `LearnBaseCertificate` contract scaffold added with:
+  - role-based access control
+  - pause/unpause emergency controls
+  - non-transferable certificates
+  - duplicate-claim prevention
+- Deploy flow is prepared for Base Sepolia and Base mainnet via Hardhat scripts.
 
 ## Accuracy baseline
 

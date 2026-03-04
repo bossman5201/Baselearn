@@ -4,7 +4,19 @@
   "version": "1.1.0",
   "description": "Learn Base mini app with optional Vercel KV cloud sync",
   "license": "MIT",
+  "scripts": {
+    "dev": "vercel dev",
+    "contract:compile": "hardhat compile",
+    "contract:deploy:base-sepolia": "hardhat run scripts/deploy-certificates.js --network baseSepolia",
+    "contract:deploy:base": "hardhat run scripts/deploy-certificates.js --network base"
+  },
   "dependencies": {
     "@vercel/kv": "^2.0.0"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@openzeppelin/contracts": "^5.1.0",
+    "dotenv": "^16.4.5",
+    "hardhat": "^2.26.3"
   }
 }
