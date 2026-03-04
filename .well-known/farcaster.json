@@ -7,21 +7,21 @@
   "frame": {
     "version": "1",
     "name": "Learn Base",
-    "iconUrl": "https://learnbase.app/icon.png",
-    "homeUrl": "https://learnbase.app/",
-    "imageUrl": "https://learnbase.app/cover.png",
+    "iconUrl": "https://baselearn.vercel.app/icon.png",
+    "homeUrl": "https://baselearn.vercel.app/",
+    "imageUrl": "https://baselearn.vercel.app/cover.png",
     "buttonTitle": "Open Learn Base",
-    "splashImageUrl": "https://learnbase.app/splash.png",
+    "splashImageUrl": "https://baselearn.vercel.app/splash.png",
     "splashBackgroundColor": "#0b4cff",
     "subtitle": "Safe Base Learning",
     "description": "A safe, beginner-first mini app to learn Base from basics to technical concepts.",
     "primaryCategory": "education",
     "tags": ["base", "education", "learn", "safety"],
-    "heroImageUrl": "https://learnbase.app/hero.png",
+    "heroImageUrl": "https://baselearn.vercel.app/hero.png",
     "tagline": "Learn Base without risky actions",
     "ogTitle": "Learn Base",
     "ogDescription": "20 lessons, quizzes, and optional certificates.",
-    "ogImageUrl": "https://learnbase.app/og.png",
+    "ogImageUrl": "https://baselearn.vercel.app/og.png",
     "noindex": false
   }
 }
