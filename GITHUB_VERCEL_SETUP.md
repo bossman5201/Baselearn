@@ -27,8 +27,8 @@ If Git asks for auth, use GitHub Desktop or GitHub PAT.
 
 Project -> Settings -> Environment Variables:
 
-- `KV_REST_API_URL`
-- `KV_REST_API_TOKEN`
+- `DATABASE_URL` (recommended, from Neon/Vercel Postgres)
+- `POSTGRES_URL` (optional fallback)
 - `LEARN_BASE_ADMIN_TOKEN`
 - `LEARN_BASE_ENABLE_CLOUD_SYNC=true`
 - `PRIVATE_KEY` (for contract deploy jobs only if you use Vercel CI for this)

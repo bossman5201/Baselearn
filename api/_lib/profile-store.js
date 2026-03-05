@@ -1,9 +1,43 @@
-const { kv } = require("@vercel/kv");
+const { Pool } = require("pg");
 
-const LESSON_KEY_PREFIX = "learnbase:profile:";
+let pool = null;
+let schemaReady = false;
+
+function getConnectionString() {
+  return process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
+}
 
 function isStorageReady() {
-  return Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+  return Boolean(getConnectionString());
+}
+
+function getPool() {
+  if (!pool) {
+    pool = new Pool({
+      connectionString: getConnectionString()
+    });
+  }
+
+  return pool;
+}
+
+async function ensureSchema() {
+  if (schemaReady) {
+    return;
+  }
+
+  const db = getPool();
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS learnbase_profiles (
+      learner_id TEXT PRIMARY KEY,
+      profile JSONB NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  schemaReady = true;
 }
 
 function sanitizeLearnerId(rawLearnerId) {
@@ -19,10 +53,6 @@ function sanitizeLearnerId(rawLearnerId) {
   }
 
   return safe;
-}
-
-function getProfileKey(learnerId) {
-  return `${LESSON_KEY_PREFIX}${learnerId}`;
 }
 
 function createEmptyProfile(learnerId) {
@@ -45,12 +75,19 @@ async function getProfile(learnerId) {
     throw new Error("storage_not_ready");
   }
 
-  const key = getProfileKey(safeLearnerId);
-  const existing = await kv.get(key);
+  await ensureSchema();
+  const db = getPool();
 
-  if (!existing) {
+  const result = await db.query(
+    "SELECT profile FROM learnbase_profiles WHERE learner_id = $1 LIMIT 1",
+    [safeLearnerId]
+  );
+
+  if (!result.rows.length) {
     return createEmptyProfile(safeLearnerId);
   }
+
+  const existing = result.rows[0].profile || {};
 
   return {
     ...createEmptyProfile(safeLearnerId),
@@ -71,9 +108,7 @@ async function saveProfile(profile) {
     throw new Error("invalid_learner_id");
   }
 
-  const key = getProfileKey(learnerId);
   const nowIso = new Date().toISOString();
-
   const cleanProfile = {
     ...createEmptyProfile(learnerId),
     ...profile,
@@ -84,7 +119,21 @@ async function saveProfile(profile) {
     createdAt: profile.createdAt || nowIso
   };
 
-  await kv.set(key, cleanProfile);
+  await ensureSchema();
+  const db = getPool();
+
+  await db.query(
+    `
+      INSERT INTO learnbase_profiles (learner_id, profile, created_at, updated_at)
+      VALUES ($1, $2::jsonb, NOW(), NOW())
+      ON CONFLICT (learner_id)
+      DO UPDATE SET
+        profile = EXCLUDED.profile,
+        updated_at = NOW()
+    `,
+    [learnerId, JSON.stringify(cleanProfile)]
+  );
+
   return cleanProfile;
 }
 

@@ -15,7 +15,7 @@ Content-first Base mini app with safe lessons, quizzes, optional certificates, a
   - `POST /api/progress`
   - `POST /api/certificate-claim`
 - Storage adapter:
-  - Uses `@vercel/kv` for profile persistence.
+  - Uses PostgreSQL (`DATABASE_URL` or `POSTGRES_URL`) for profile persistence.
 
 ## Project structure
 
@@ -37,8 +37,7 @@ Content-first Base mini app with safe lessons, quizzes, optional certificates, a
 
 Set these in Vercel Project Settings -> Environment Variables:
 
-- `KV_REST_API_URL`
-- `KV_REST_API_TOKEN`
+- `DATABASE_URL` (or `POSTGRES_URL`)
 - `LEARN_BASE_ADMIN_TOKEN` (reserved for future admin routes)
 - `LEARN_BASE_ENABLE_CLOUD_SYNC=true`
 

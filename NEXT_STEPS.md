@@ -22,8 +22,7 @@ Send:
 
 Then add these env vars in Vercel:
 
-- `KV_REST_API_URL`
-- `KV_REST_API_TOKEN`
+- `DATABASE_URL` (or `POSTGRES_URL`)
 - `LEARN_BASE_ADMIN_TOKEN` (any strong random string)
 - `LEARN_BASE_ENABLE_CLOUD_SYNC=true`
 
@@ -31,11 +30,11 @@ Then add these env vars in Vercel:
 
 Confirm one:
 
-- Vercel KV (recommended for v1)
+- Neon / Vercel Postgres (recommended for v1)
 - Supabase Postgres
 - Other
 
-Current code is wired for Vercel KV.
+Current code is wired for PostgreSQL.
 
 ## 4) Branding assets
 
