@@ -6,17 +6,14 @@
   "license": "MIT",
   "scripts": {
     "dev": "vercel dev",
-    "contract:compile": "hardhat compile",
-    "contract:deploy:base-sepolia": "hardhat run scripts/deploy-certificates.js --network baseSepolia",
-    "contract:deploy:base": "hardhat run scripts/deploy-certificates.js --network base"
+    "contract:compile": "forge build",
+    "contract:deploy:base-sepolia": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/deploy-certificates.ps1 -Network base-sepolia",
+    "contract:deploy:base": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/deploy-certificates.ps1 -Network base"
   },
   "dependencies": {
     "pg": "^8.12.0"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
-    "@openzeppelin/contracts": "^5.1.0",
-    "dotenv": "^16.4.5",
-    "hardhat": "^2.26.3"
+    "@openzeppelin/contracts": "^5.1.0"
   }
 }

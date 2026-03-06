@@ -1,6 +1,13 @@
-# Founder Hand-off: What I Need From You
+# Founder Hand-off Status
 
-I can take this live as soon as you provide these items.
+Latest updates received (March 6, 2026):
+
+- Deployment is almost complete.
+- Storage choice confirmed: Neon.
+- `accountAssociation` payload provided for `baselearn.vercel.app`.
+- Contract deployment tool confirmed: Foundry.
+
+Remaining launch blockers are below.
 
 ## 1) GitHub
 
@@ -28,11 +35,9 @@ Then add these env vars in Vercel:
 
 ## 3) Storage choice
 
-Confirm one:
+Confirmed:
 
-- Neon / Vercel Postgres (recommended for v1)
-- Supabase Postgres
-- Other
+- Neon (v1)
 
 Current code is wired for PostgreSQL.
 

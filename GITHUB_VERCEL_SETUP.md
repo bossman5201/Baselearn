@@ -27,11 +27,16 @@ If Git asks for auth, use GitHub Desktop or GitHub PAT.
 
 Project -> Settings -> Environment Variables:
 
-- `DATABASE_URL` (recommended, from Neon/Vercel Postgres)
+- `DATABASE_URL` (Neon connection string for production)
 - `POSTGRES_URL` (optional fallback)
 - `LEARN_BASE_ADMIN_TOKEN`
 - `LEARN_BASE_ENABLE_CLOUD_SYNC=true`
-- `PRIVATE_KEY` (for contract deploy jobs only if you use Vercel CI for this)
+
+## D) Contract deploy env vars (local shell for Foundry)
+
+Use these in local `.env` / shell variables when running `forge`:
+
+- `PRIVATE_KEY`
 - `BASE_RPC_URL`
 - `BASE_SEPOLIA_RPC_URL`
 - `BASESCAN_API_KEY`
@@ -40,14 +45,14 @@ Project -> Settings -> Environment Variables:
 - `CONTRACT_PAUSER_WALLET`
 - `CERT_METADATA_BASE_URI`
 
-## D) Domain
+## E) Domain
 
 After first deploy:
 1. Add your custom domain.
 2. Update `.well-known/farcaster.json` URLs to your real domain.
 3. Redeploy.
 
-## E) Verify backend
+## F) Verify backend
 
 Check these URLs after deploy:
 
@@ -57,3 +62,18 @@ Check these URLs after deploy:
 Expected:
 - health returns `{ ok: true, storageReady: true/false }`
 - profile returns a profile object when storage is ready.
+
+## G) Deploy certificate contract (Foundry)
+
+Run from project root:
+
+```powershell
+npm run contract:compile
+npm run contract:deploy:base-sepolia
+```
+
+Then mainnet:
+
+```powershell
+npm run contract:deploy:base
+```

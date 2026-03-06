@@ -16,6 +16,7 @@ Content-first Base mini app with safe lessons, quizzes, optional certificates, a
   - `POST /api/certificate-claim`
 - Storage adapter:
   - Uses PostgreSQL (`DATABASE_URL` or `POSTGRES_URL`) for profile persistence.
+  - Neon selected for v1 deployment.
 
 ## Project structure
 
@@ -27,7 +28,8 @@ Content-first Base mini app with safe lessons, quizzes, optional certificates, a
 - `.well-known/farcaster.json`: mini app manifest scaffold
 - `.env.example`: required environment variables
 - `contracts/`: certificate smart contract (Base-ready)
-- `scripts/`: Hardhat deployment scripts
+- `scripts/`: Foundry deployment helper + asset generation
+- `foundry.toml`: Foundry project config for contract compile/deploy
 - `certificates/`: token metadata JSON used by certificate contract URIs
 - `GITHUB_VERCEL_SETUP.md`: exact setup checklist
 - `BRANDING_PROMPTS.md`: image generation prompts
@@ -48,7 +50,7 @@ Set these in Vercel Project Settings -> Environment Variables:
 3. Add environment variables above.
 4. Deploy.
 5. Update `.well-known/farcaster.json` URLs to your real domain.
-6. Replace `accountAssociation` placeholders with real signed values.
+6. Confirm `accountAssociation` values match the active production domain.
 7. Re-share mini app URL after manifest updates so indexing refreshes.
 
 ## Learner identity and sync
@@ -69,7 +71,7 @@ Set these in Vercel Project Settings -> Environment Variables:
   - pause/unpause emergency controls
   - non-transferable certificates
   - duplicate-claim prevention
-- Deploy flow is prepared for Base Sepolia and Base mainnet via Hardhat scripts.
+- Deploy flow is prepared for Base Sepolia and Base mainnet via Foundry (`forge` + `cast`).
 
 ## Accuracy baseline
 

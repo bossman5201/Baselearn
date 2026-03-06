@@ -31,6 +31,8 @@ Contract file:
 
 ```powershell
 npm install
+forge --version
+cast --version
 npm run contract:compile
 npm run contract:deploy:base-sepolia
 ```
@@ -39,6 +41,12 @@ Mainnet deploy:
 
 ```powershell
 npm run contract:deploy:base
+```
+
+Optional verify (after deploy):
+
+```powershell
+forge verify-contract <DEPLOYED_ADDRESS> contracts/LearnBaseCertificate.sol:LearnBaseCertificate --chain base-sepolia --etherscan-api-key $env:BASESCAN_API_KEY
 ```
 
 ## Post-deploy hardening
