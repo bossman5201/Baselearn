@@ -6,7 +6,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "vercel dev",
-    "contract:compile": "forge build",
+    "contract:compile": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/compile-contracts.ps1",
     "contract:deploy:base-sepolia": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/deploy-certificates.ps1 -Network base-sepolia",
     "contract:deploy:base": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/deploy-certificates.ps1 -Network base"
   },

@@ -1,0 +1,12 @@
+# Local secrets
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+
+# Foundry build artifacts
+out/
+cache/
+broadcast/

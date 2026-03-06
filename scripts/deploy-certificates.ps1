@@ -5,10 +5,43 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-function Require-Command([string]$Name) {
-  if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
-    throw "Required command '$Name' was not found in PATH."
+function Load-DotEnv([string]$Path = ".env") {
+  if (-not (Test-Path $Path)) {
+    return
   }
+
+  Get-Content $Path | ForEach-Object {
+    $line = $_.Trim()
+    if ([string]::IsNullOrWhiteSpace($line) -or $line.StartsWith("#")) {
+      return
+    }
+
+    $pair = $line -split "=", 2
+    if ($pair.Count -ne 2) {
+      return
+    }
+
+    $name = $pair[0].Trim()
+    $value = $pair[1].Trim()
+
+    if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name, "Process"))) {
+      [Environment]::SetEnvironmentVariable($name, $value, "Process")
+    }
+  }
+}
+
+function Require-Command([string]$Name) {
+  $command = Get-Command $Name -ErrorAction SilentlyContinue
+  if ($command) {
+    return $command.Source
+  }
+
+  $fallbackPath = Join-Path $env:USERPROFILE ".foundry\bin\$Name.exe"
+  if (Test-Path $fallbackPath) {
+    return $fallbackPath
+  }
+
+  throw "Required command '$Name' was not found in PATH or at $fallbackPath."
 }
 
 function Require-Env([string]$Name) {
@@ -20,8 +53,10 @@ function Require-Env([string]$Name) {
   return $Value.Trim()
 }
 
-Require-Command "forge"
-Require-Command "cast"
+Load-DotEnv
+
+$forgeCmd = Require-Command "forge"
+$castCmd = Require-Command "cast"
 
 $privateKey = Require-Env "PRIVATE_KEY"
 $admin = Require-Env "CONTRACT_ADMIN_WALLET"
@@ -40,7 +75,7 @@ $rpcUrl = if ($Network -eq "base-sepolia") {
 }
 
 Write-Host "Deploying LearnBaseCertificate to $Network..."
-$deployOutput = & forge create `
+$deployOutput = & $forgeCmd create `
   "contracts/LearnBaseCertificate.sol:LearnBaseCertificate" `
   --rpc-url $rpcUrl `
   --private-key $privateKey `
@@ -62,7 +97,7 @@ $certificateTypeIds = @(1, 2, 3, 4, 5)
 
 foreach ($certificateTypeId in $certificateTypeIds) {
   Write-Host "Enabling certificate type $certificateTypeId..."
-  & cast send `
+  & $castCmd send `
     $contractAddress `
     "setCertificateType(uint256,bool)" `
     $certificateTypeId `

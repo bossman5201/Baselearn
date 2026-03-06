@@ -45,6 +45,10 @@ Use these in local `.env` / shell variables when running `forge`:
 - `CONTRACT_PAUSER_WALLET`
 - `CERT_METADATA_BASE_URI`
 
+Security:
+- Never commit `PRIVATE_KEY` to GitHub.
+- Keep `PRIVATE_KEY` only in local `.env` / shell; it is server-side only and never used in frontend code.
+
 ## E) Domain
 
 After first deploy:
