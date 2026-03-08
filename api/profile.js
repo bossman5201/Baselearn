@@ -1,5 +1,10 @@
 const { sendJson, methodNotAllowed } = require("./_lib/http");
-const { getProfile, sanitizeLearnerId, isStorageReady } = require("./_lib/profile-store");
+const {
+  assertLearnerSecret,
+  sanitizeLearnerId,
+  sanitizeLearnerSecret,
+  isStorageReady
+} = require("./_lib/profile-store");
 
 module.exports = async function handler(req, res) {
   if (req.method !== "GET") {
@@ -14,6 +19,7 @@ module.exports = async function handler(req, res) {
   }
 
   const learnerId = sanitizeLearnerId(req.query.learnerId);
+  const learnerSecret = sanitizeLearnerSecret(req.query.learnerSecret);
   if (!learnerId) {
     return sendJson(res, 400, {
       ok: false,
@@ -21,13 +27,38 @@ module.exports = async function handler(req, res) {
     });
   }
 
+  if (!learnerSecret) {
+    return sendJson(res, 400, {
+      ok: false,
+      error: "invalid_learner_secret"
+    });
+  }
+
   try {
-    const profile = await getProfile(learnerId);
+    const { profile } = await assertLearnerSecret({
+      learnerId,
+      learnerSecret,
+      allowInitialize: true
+    });
+
     return sendJson(res, 200, {
       ok: true,
       profile
     });
   } catch (error) {
+    const knownErrors = new Set([
+      "invalid_learner_secret",
+      "learner_secret_not_initialized",
+      "learner_secret_mismatch"
+    ]);
+
+    if (knownErrors.has(error.message)) {
+      return sendJson(res, 400, {
+        ok: false,
+        error: error.message
+      });
+    }
+
     return sendJson(res, 500, {
       ok: false,
       error: "profile_fetch_failed",

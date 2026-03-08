@@ -59,21 +59,18 @@ export const LESSONS = [
         id: "L1Q1",
         question: "Why do Layer 2 networks exist?",
         options: ["To replace wallets", "To improve cost and speed", "To remove private keys", "To avoid confirmations"],
-        answerIndex: 1,
         explanation: "Layer 2 aims to improve efficiency while using Ethereum security context."
       },
       {
         id: "L1Q2",
         question: "Base is best described as:",
         options: ["A centralized exchange", "A Layer 2 chain", "A validator pool", "A social account"],
-        answerIndex: 1,
         explanation: "Base is an Ethereum Layer 2 chain."
       },
       {
         id: "L1Q3",
         question: "Lower fees mean zero user risk.",
         options: ["True", "False", "Only for experts", "Only for stablecoins"],
-        answerIndex: 1,
         explanation: "Lower cost does not remove phishing or user error risk."
       }
     )
@@ -105,21 +102,18 @@ export const LESSONS = [
         id: "L2Q1",
         question: "What is Base chain?",
         options: ["A token", "A Layer 2 network", "A browser extension", "A support channel"],
-        answerIndex: 1,
         explanation: "Base chain is the network layer."
       },
       {
         id: "L2Q2",
         question: "What does legacy mode refer to?",
         options: ["Bridge delay", "Former Coinbase Wallet naming", "A testnet", "A gas mode"],
-        answerIndex: 1,
         explanation: "Legacy mode is the former naming context."
       },
       {
         id: "L2Q3",
         question: "Why does naming clarity matter?",
         options: ["It changes APY", "It avoids product confusion", "It removes risk", "It lowers gas forever"],
-        answerIndex: 1,
         explanation: "Clear terms help users follow the right workflow."
       }
     )
@@ -151,21 +145,18 @@ export const LESSONS = [
         id: "L3Q1",
         question: "An EOA is controlled by:",
         options: ["Private key", "Bridge contract", "Explorer UI", "Validator vote"],
-        answerIndex: 0,
         explanation: "EOAs are directly controlled by a private key."
       },
       {
         id: "L3Q2",
         question: "Smart wallets are useful because they can:",
         options: ["Eliminate all fees", "Add programmable rules", "Hide all tx data", "Replace Ethereum"],
-        answerIndex: 1,
         explanation: "Smart wallets can implement programmable account behavior."
       },
       {
         id: "L3Q3",
         question: "Passkeys mainly improve:",
         options: ["Login UX", "Token issuance", "Price impact", "Mining speed"],
-        answerIndex: 0,
         explanation: "Passkeys mostly improve authentication UX."
       }
     )
@@ -197,21 +188,18 @@ export const LESSONS = [
         id: "L4Q1",
         question: "An address represents:",
         options: ["A token type", "An account identifier", "A private key", "A gas rule"],
-        answerIndex: 1,
         explanation: "Addresses identify accounts onchain."
       },
       {
         id: "L4Q2",
         question: "A transaction is:",
         options: ["A chat message", "A signed state request", "An address book", "A fee table"],
-        answerIndex: 1,
         explanation: "Transactions are signed requests for state changes."
       },
       {
         id: "L4Q3",
         question: "Confirmations indicate:",
         options: ["Wallet reset", "Finality confidence", "Price change", "Token burn"],
-        answerIndex: 1,
         explanation: "Confirmations indicate the transaction is finalized."
       }
     )
@@ -243,21 +231,18 @@ export const LESSONS = [
         id: "L5Q1",
         question: "Gas is:",
         options: ["A stablecoin", "A network fee", "A seed phrase", "A bridge ID"],
-        answerIndex: 1,
         explanation: "Gas is the execution fee for network actions."
       },
       {
         id: "L5Q2",
         question: "Sponsored transaction means:",
         options: ["No review needed", "App may cover fee costs", "All chains are free", "No confirmations needed"],
-        answerIndex: 1,
         explanation: "Sponsorship can reduce cost but not user responsibility."
       },
       {
         id: "L5Q3",
         question: "Safest mindset:",
         options: ["Sign fast", "Review every prompt", "Share wallet keys", "Ignore network info"],
-        answerIndex: 1,
         explanation: "Prompt review is a core safety habit."
       }
     )
@@ -289,21 +274,18 @@ export const LESSONS = [
         id: "L6Q1",
         question: "Best step before large transfer:",
         options: ["Skip checks", "Use a test transfer", "Trust unknown DMs", "Copy first 4 chars only"],
-        answerIndex: 1,
         explanation: "A small test send can prevent large mistakes."
       },
       {
         id: "L6Q2",
         question: "Why verify network and address together?",
         options: ["To increase APY", "To reduce irreversible errors", "To lower token supply", "To hide tx history"],
-        answerIndex: 1,
         explanation: "Correct address on wrong network can still fail."
       },
       {
         id: "L6Q3",
         question: "Unknown urgent payment request should be:",
         options: ["Paid instantly", "Verified through trusted channels", "Shared publicly", "Ignored forever without checks"],
-        answerIndex: 1,
         explanation: "Verification through official channels is safest."
       }
     )
@@ -335,21 +317,18 @@ export const LESSONS = [
         id: "L7Q1",
         question: "ERC-20 is:",
         options: ["A bridge format", "A token standard", "A chat protocol", "A wallet backup"],
-        answerIndex: 1,
         explanation: "ERC-20 defines common token behavior."
       },
       {
         id: "L7Q2",
         question: "Stablecoins are:",
         options: ["Always risk free", "Designed for stable target value", "Only testnet tokens", "Not onchain"],
-        answerIndex: 1,
         explanation: "Stablecoins target value stability but still have risks."
       },
       {
         id: "L7Q3",
         question: "Safest approach with unknown token:",
         options: ["Trust logo", "Verify source and contract context", "Follow random post", "Ignore network"],
-        answerIndex: 1,
         explanation: "Verification helps avoid token spoof scams."
       }
     )
@@ -381,21 +360,18 @@ export const LESSONS = [
         id: "L8Q1",
         question: "An approval is:",
         options: ["The transfer itself", "A spend permission", "A gas refund", "A seed phrase backup"],
-        answerIndex: 1,
         explanation: "Approvals grant permissions; they are not the transfer itself."
       },
       {
         id: "L8Q2",
         question: "Why can unlimited approvals be risky?",
         options: ["They improve speed", "They increase exposure if contract fails", "They remove confirmations", "They hide balances"],
-        answerIndex: 1,
         explanation: "Large allowances increase downside if compromised."
       },
       {
         id: "L8Q3",
         question: "Good security habit:",
         options: ["Ignore approvals", "Review and revoke stale approvals", "Share keys with support", "Sign all prompts"],
-        answerIndex: 1,
         explanation: "Periodic review reduces long-term risk."
       }
     )
@@ -427,21 +403,18 @@ export const LESSONS = [
         id: "L9Q1",
         question: "Guaranteed high return offer is usually:",
         options: ["Safe", "A red flag", "Required", "Tax related"],
-        answerIndex: 1,
         explanation: "Guarantees in volatile environments are suspicious."
       },
       {
         id: "L9Q2",
         question: "Legitimate support asks for seed phrase.",
         options: ["True", "False", "Only for VIP", "Only on testnet"],
-        answerIndex: 1,
         explanation: "Legitimate support will never ask for seed phrase."
       },
       {
         id: "L9Q3",
         question: "Unknown urgent link should be:",
         options: ["Clicked now", "Verified through official channels", "Forwarded everywhere", "Signed immediately"],
-        answerIndex: 1,
         explanation: "Always verify before interacting."
       }
     )
@@ -473,21 +446,18 @@ export const LESSONS = [
         id: "L10Q1",
         question: "Most finalized transfers are:",
         options: ["Easy to reverse", "Irreversible", "Auto-insured", "Hidden by default"],
-        answerIndex: 1,
         explanation: "Finalized blockchain transfers are typically irreversible."
       },
       {
         id: "L10Q2",
         question: "Support is best at:",
         options: ["Always reversing sends", "Diagnosing and guiding", "Sharing private keys", "Cancelling confirmations"],
-        answerIndex: 1,
         explanation: "Support can guide and diagnose, not guarantee reversal."
       },
       {
         id: "L10Q3",
         question: "Helpful info for support includes:",
         options: ["Token color", "Transaction hash and timeline", "Wallpaper screenshot", "No data"],
-        answerIndex: 1,
         explanation: "Transaction hash is the core trace artifact."
       }
     )
@@ -519,21 +489,18 @@ export const LESSONS = [
         id: "L11Q1",
         question: "AMM pricing depends on:",
         options: ["Random posts", "Pool balances and formula", "Wallet color", "Phone type"],
-        answerIndex: 1,
         explanation: "AMM pricing follows pool state and formula rules."
       },
       {
         id: "L11Q2",
         question: "Slippage means:",
         options: ["Bridge delay", "Price difference from quote", "Gas sponsorship", "Explorer lag"],
-        answerIndex: 1,
         explanation: "Slippage is expected vs actual execution gap."
       },
       {
         id: "L11Q3",
         question: "Large trade in shallow pool causes:",
         options: ["Low impact", "Higher price impact", "No confirmations", "No fees"],
-        answerIndex: 1,
         explanation: "Lower liquidity depth increases impact."
       }
     )
@@ -565,21 +532,18 @@ export const LESSONS = [
         id: "L12Q1",
         question: "Bridges are used to:",
         options: ["Rename wallets", "Move assets/messages across chains", "Disable fees", "Hide history"],
-        answerIndex: 1,
         explanation: "Bridges connect different networks."
       },
       {
         id: "L12Q2",
         question: "Bridge UX may include:",
         options: ["No waiting", "Pending status checks", "No network selection", "No confirmations"],
-        answerIndex: 1,
         explanation: "Many bridges are asynchronous and require waiting."
       },
       {
         id: "L12Q3",
         question: "Safer behavior is:",
         options: ["Use random links", "Use official vetted interface", "Share seed phrase", "Skip destination checks"],
-        answerIndex: 1,
         explanation: "Trusted interfaces reduce phishing risk."
       }
     )
@@ -611,21 +575,18 @@ export const LESSONS = [
         id: "L13Q1",
         question: "Borrowers usually must:",
         options: ["Post collateral", "Provide phone number", "Avoid rates", "Disable wallet"],
-        answerIndex: 0,
         explanation: "Collateral secures borrowing positions."
       },
       {
         id: "L13Q2",
         question: "Liquidation occurs when:",
         options: ["Position is healthy", "Safety threshold is broken", "Gas is low", "User logs out"],
-        answerIndex: 1,
         explanation: "Unsafe collateral ratios trigger liquidation logic."
       },
       {
         id: "L13Q3",
         question: "Rates often depend on:",
         options: ["Avatar image", "Utilization dynamics", "Chain color", "Wallet age"],
-        answerIndex: 1,
         explanation: "Supply-demand utilization shapes rate changes."
       }
     )
@@ -657,21 +618,18 @@ export const LESSONS = [
         id: "L14Q1",
         question: "LPs usually earn:",
         options: ["Swap fees", "No rewards", "Block rewards only", "Tax rebates"],
-        answerIndex: 0,
         explanation: "Pool fees are a common LP revenue source."
       },
       {
         id: "L14Q2",
         question: "Impermanent loss comes from:",
         options: ["Password resets", "Asset price divergence", "Gas sponsorship", "App loading speed"],
-        answerIndex: 1,
         explanation: "Price divergence changes pool position value mix."
       },
       {
         id: "L14Q3",
         question: "APY in interfaces is:",
         options: ["Guaranteed forever", "A variable estimate", "A legal contract", "Always fixed"],
-        answerIndex: 1,
         explanation: "APY changes with market and protocol conditions."
       }
     )
@@ -703,21 +661,18 @@ export const LESSONS = [
         id: "L15Q1",
         question: "NFT ownership is stored in:",
         options: ["Spreadsheet", "Token contract state", "Email inbox", "Chat history"],
-        answerIndex: 1,
         explanation: "Ownership is determined by onchain contract records."
       },
       {
         id: "L15Q2",
         question: "Metadata is:",
         options: ["Only wallet password", "Token descriptive information", "Gas setting", "Bridge route"],
-        answerIndex: 1,
         explanation: "Metadata describes token media and attributes."
       },
       {
         id: "L15Q3",
         question: "Royalties are:",
         options: ["Always guaranteed", "Dependent on implementation", "Not related to NFTs", "A chain ID"],
-        answerIndex: 1,
         explanation: "Royalty behavior can differ by marketplace and standards support."
       }
     ),
@@ -753,21 +708,18 @@ export const LESSONS = [
         id: "L16Q1",
         question: "Sequencer mainly does:",
         options: ["Store seed phrases", "Order transactions", "Create tokens", "Write support tickets"],
-        answerIndex: 1,
         explanation: "Sequencers primarily order transactions."
       },
       {
         id: "L16Q2",
         question: "A batch is:",
         options: ["Random post", "Grouped transaction data", "Wallet backup", "UI component"],
-        answerIndex: 1,
         explanation: "Batches package data for settlement anchoring."
       },
       {
         id: "L16Q3",
         question: "Anchoring to Ethereum supports:",
         options: ["Better settlement base", "No confirmations", "No wallets", "No explorers"],
-        answerIndex: 0,
         explanation: "Anchoring ties results to Ethereum settlement context."
       }
     )
@@ -799,21 +751,18 @@ export const LESSONS = [
         id: "L17Q1",
         question: "ABI helps with:",
         options: ["Encoding/decoding contract calls", "Changing token supply", "Recovering keys", "Bridge routing"],
-        answerIndex: 0,
         explanation: "ABI defines contract call structure."
       },
       {
         id: "L17Q2",
         question: "Events are used for:",
         options: ["Private key storage", "Structured execution logs", "Gas refunds", "DNS setup"],
-        answerIndex: 1,
         explanation: "Events are structured logs from execution."
       },
       {
         id: "L17Q3",
         question: "Explorer provides:",
         options: ["Onchain visibility", "Guaranteed safety", "Wallet creation", "Tax filing"],
-        answerIndex: 0,
         explanation: "Explorers help inspect addresses, txs, and contracts."
       }
     )
@@ -845,21 +794,18 @@ export const LESSONS = [
         id: "L18Q1",
         question: "Account abstraction enables:",
         options: ["Programmable account behavior", "No signatures ever", "No wallets", "No gas model"],
-        answerIndex: 0,
         explanation: "It allows smarter account logic."
       },
       {
         id: "L18Q2",
         question: "Paymaster can:",
         options: ["Sponsor fee costs", "Delete transactions", "Recover seed phrase", "Mint chain IDs"],
-        answerIndex: 0,
         explanation: "Paymasters can sponsor fees under rules."
       },
       {
         id: "L18Q3",
         question: "Sponsored flow means users can skip checks.",
         options: ["True", "False", "Only on testnet", "Only for passkeys"],
-        answerIndex: 1,
         explanation: "Users should always review prompts."
       }
     )
@@ -891,21 +837,18 @@ export const LESSONS = [
         id: "L19Q1",
         question: "Manifest is important because it:",
         options: ["Stores keys", "Defines app metadata", "Sets token price", "Runs contracts"],
-        answerIndex: 1,
         explanation: "Discovery pipelines depend on manifest metadata."
       },
       {
         id: "L19Q2",
         question: "Primary category helps with:",
         options: ["Search placement", "Gas pricing", "Private key recovery", "Bridge speed"],
-        answerIndex: 0,
         explanation: "Category classification impacts discovery."
       },
       {
         id: "L19Q3",
         question: "After manifest updates, one useful action is:",
         options: ["Do nothing forever", "Re-share app URL", "Delete lessons", "Rotate seed phrase"],
-        answerIndex: 1,
         explanation: "Re-sharing can trigger reindex behavior."
       }
     )
@@ -937,21 +880,18 @@ export const LESSONS = [
         id: "L20Q1",
         question: "Good onboarding is:",
         options: ["Complex", "Short and clear", "Hidden", "Forced with long forms"],
-        answerIndex: 1,
         explanation: "Simple onboarding improves completion and trust."
       },
       {
         id: "L20Q2",
         question: "Sponsored lessons should be:",
         options: ["Unlabeled", "Clearly labeled", "Paid in secret", "Removed from app"],
-        answerIndex: 1,
         explanation: "Transparency is essential for trust."
       },
       {
         id: "L20Q3",
         question: "Before launch you should have:",
         options: ["No support plan", "Support and incident playbook", "No analytics", "No manifest"],
-        answerIndex: 1,
         explanation: "Prepared operations reduce launch risk."
       }
     ),
@@ -965,6 +905,7 @@ export const LESSONS = [
 export const CERTIFICATES = [
   {
     id: "cert-fundamentals",
+    typeId: 1,
     trackId: "fundamentals",
     name: "Base Fundamentals Certificate",
     priceUsd: 0.99,
@@ -972,6 +913,7 @@ export const CERTIFICATES = [
   },
   {
     id: "cert-safety",
+    typeId: 2,
     trackId: "safety",
     name: "Base Safety Certificate",
     priceUsd: 0.99,
@@ -979,6 +921,7 @@ export const CERTIFICATES = [
   },
   {
     id: "cert-concepts",
+    typeId: 3,
     trackId: "concepts",
     name: "Base Concepts Certificate",
     priceUsd: 0.99,
@@ -986,6 +929,7 @@ export const CERTIFICATES = [
   },
   {
     id: "cert-technical",
+    typeId: 4,
     trackId: "technical",
     name: "Base Technical Certificate",
     priceUsd: 0.99,
@@ -993,6 +937,7 @@ export const CERTIFICATES = [
   },
   {
     id: "cert-master",
+    typeId: 5,
     trackId: "all",
     name: "Learn Base Master Certificate",
     priceUsd: 2.99,

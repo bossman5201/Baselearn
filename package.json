@@ -6,12 +6,19 @@
   "license": "MIT",
   "scripts": {
     "dev": "vercel dev",
+    "miniapp:check": "node scripts/check-miniapp-manifest.mjs",
     "contract:compile": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/compile-contracts.ps1",
+    "contract:test": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-contracts.ps1",
     "contract:deploy:base-sepolia": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/deploy-certificates.ps1 -Network base-sepolia",
     "contract:deploy:base": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/deploy-certificates.ps1 -Network base"
   },
   "dependencies": {
-    "pg": "^8.12.0"
+    "@coinbase/onchainkit": "^1.1.2",
+    "pg": "^8.12.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "viem": "^2.47.0",
+    "wagmi": "^2.17.5"
   },
   "devDependencies": {
     "@openzeppelin/contracts": "^5.1.0"

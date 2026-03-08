@@ -1,16 +1,21 @@
 import { TRACKS, LESSONS, CERTIFICATES, SPONSOR_POLICY } from "./data/lessons.js";
 
 const APP_CONFIG = {
-  paymentMode: "demo", // "demo" or "base-pay"
+  paymentMode: "basepay",
   appVersion: "v1.1.0",
-  enableCloudSync: true
+  enableCloudSync: true,
+  adminWallet: "0xbd14b65E9c6E767F02D1900894261735F5f48A57",
+  expectedChainId: 8453,
+  expectedChainHex: "0x2105"
 };
 
 const STORAGE_KEYS = {
+  quizResults: "learn-base-quiz-results",
   progress: "learn-base-progress",
   certificates: "learn-base-certificates",
   prefs: "learn-base-prefs",
-  account: "learn-base-account"
+  account: "learn-base-account",
+  auth: "learn-base-auth"
 };
 
 const PASSING_SCORE = 70;
@@ -18,17 +23,49 @@ const PASSING_SCORE = 70;
 const state = {
   route: { page: "home", id: null },
   searchTerm: "",
-  quizResults: {},
+  quizResults: loadJson(STORAGE_KEYS.quizResults, {}),
   progress: loadJson(STORAGE_KEYS.progress, { lessons: {} }),
   certificates: loadJson(STORAGE_KEYS.certificates, {}),
   prefs: loadJson(STORAGE_KEYS.prefs, { disclaimerSeen: false }),
-  account: loadJson(STORAGE_KEYS.account, { learnerId: "" }),
+  account: loadJson(STORAGE_KEYS.account, { learnerId: "", learnerSecret: "" }),
+  auth: loadJson(STORAGE_KEYS.auth, {
+    token: "",
+    learnerId: "",
+    walletAddress: "",
+    expiresAt: ""
+  }),
   cloud: {
     mode: "checking",
     storageReady: false,
     message: "Checking cloud sync..."
+  },
+  wallet: {
+    status: "disconnected",
+    address: "",
+    chainId: null,
+    usingMiniAppProvider: false,
+    message: "Wallet not connected."
+  },
+  contract: {
+    loading: true,
+    configured: false,
+    contractAddress: "",
+    adminWallet: APP_CONFIG.adminWallet,
+    chainId: APP_CONFIG.expectedChainId,
+    balanceWei: "0",
+    certificatePricing: {},
+    message: "Loading contract status..."
   }
 };
+
+if (state.account.learnerId && !state.account.learnerSecret) {
+  state.account.learnerSecret = generateLearnerSecret();
+  try {
+    localStorage.setItem(STORAGE_KEYS.account, JSON.stringify(state.account));
+  } catch {
+    // Ignore storage write failures; app can still run in-memory.
+  }
+}
 
 const appEl = document.getElementById("app");
 const navButtons = Array.from(document.querySelectorAll(".nav-button"));
@@ -40,6 +77,7 @@ const TRACK_MAP = new Map(TRACKS.map((track) => [track.id, track]));
 syncRouteFromHash();
 render();
 void initializeCloud();
+void initializeOnchain();
 
 window.addEventListener("hashchange", () => {
   syncRouteFromHash();
@@ -99,12 +137,39 @@ appEl.addEventListener("click", (event) => {
     return;
   }
 
+  if (action === "connect-wallet") {
+    void connectWallet().catch((error) => {
+      state.wallet.status = "disconnected";
+      state.wallet.message = `Wallet connect failed: ${error.message}`;
+      render();
+      window.alert(`Wallet connect failed: ${error.message}`);
+    });
+    return;
+  }
+
+  if (action === "disconnect-wallet") {
+    disconnectWallet();
+    return;
+  }
+
+  if (action === "refresh-contract") {
+    void loadContractStatus();
+    return;
+  }
+
+  if (action === "withdraw-all") {
+    void withdrawAllRevenue();
+    return;
+  }
+
   if (action === "clear-account") {
     if (!window.confirm("Clear learner ID from this device? Local progress will stay on this browser.")) {
       return;
     }
 
+    clearAuthSession();
     state.account.learnerId = "";
+    state.account.learnerSecret = "";
     saveState();
     render();
     return;
@@ -131,7 +196,17 @@ appEl.addEventListener("submit", async (event) => {
       return;
     }
 
+    const previousLearnerId = state.account.learnerId;
+    const learnerChanged = Boolean(previousLearnerId && previousLearnerId !== learnerId);
+
+    if (learnerChanged) {
+      clearAuthSession();
+    }
+
     state.account.learnerId = learnerId;
+    if (!state.account.learnerSecret || learnerChanged) {
+      state.account.learnerSecret = generateLearnerSecret();
+    }
     saveState();
     render();
     await loadCloudProfile();
@@ -146,46 +221,72 @@ appEl.addEventListener("submit", async (event) => {
   const lesson = LESSON_MAP.get(lessonId);
   if (!lesson) return;
 
+  if (!state.account.learnerId) {
+    window.alert("Set your learner ID first to submit quizzes.");
+    return;
+  }
+
+  if (!state.account.learnerSecret) {
+    window.alert("Learner session not initialized. Re-save your learner ID.");
+    return;
+  }
+
+  if (!state.cloud.storageReady) {
+    window.alert("Cloud storage is required for secure quiz grading. Configure backend storage first.");
+    return;
+  }
+
   const formData = new FormData(form);
   const answers = {};
   lesson.quiz.forEach((q) => {
     answers[q.id] = Number(formData.get(q.id));
   });
 
-  const total = lesson.quiz.length;
-  let correct = 0;
-  const breakdown = lesson.quiz.map((q) => {
-    const userAnswer = Number.isFinite(answers[q.id]) ? answers[q.id] : -1;
-    const isCorrect = userAnswer === q.answerIndex;
-    if (isCorrect) correct += 1;
+  try {
+    const data = await apiPost("/api/progress", {
+      learnerId: state.account.learnerId,
+      learnerSecret: state.account.learnerSecret,
+      lessonId,
+      answers
+    });
 
-    return {
-      id: q.id,
-      userAnswer,
-      correctAnswer: q.answerIndex,
-      isCorrect,
-      explanation: q.explanation,
-      question: q.question,
-      options: q.options
+    const result = data.result || {};
+    const correctAnswers = result.correctAnswers || {};
+    const breakdown = lesson.quiz.map((q) => {
+      const userAnswer = Number.isFinite(answers[q.id]) ? answers[q.id] : -1;
+      const correctAnswer = Number.isInteger(correctAnswers[q.id]) ? correctAnswers[q.id] : -1;
+
+      return {
+        id: q.id,
+        userAnswer,
+        correctAnswer,
+        isCorrect: userAnswer === correctAnswer,
+        explanation: q.explanation,
+        question: q.question,
+        options: q.options
+      };
+    });
+
+    state.quizResults[lessonId] = {
+      score: Number(result.score || 0),
+      passed: Boolean(result.passed),
+      total: Number(result.total || lesson.quiz.length),
+      correct: Number(result.correct || 0),
+      breakdown,
+      completedAt: new Date().toISOString()
     };
-  });
 
-  const score = Math.round((correct / total) * 100);
-  const passed = score >= PASSING_SCORE;
-
-  state.quizResults[lessonId] = {
-    score,
-    passed,
-    total,
-    correct,
-    breakdown,
-    completedAt: new Date().toISOString()
-  };
-
-  updateLessonProgress(lessonId, score, passed);
-  saveState();
-  render();
-  await pushProgressToCloud(lessonId);
+    mergeProfileFromCloud(data.profile);
+    state.cloud.mode = "ready";
+    state.cloud.message = "Progress synced.";
+    saveState();
+    render();
+  } catch (error) {
+    state.cloud.mode = "error";
+    state.cloud.message = `Progress sync failed: ${error.message}`;
+    render();
+    window.alert(`Quiz submission failed: ${error.message}`);
+  }
 });
 
 function render() {
@@ -589,21 +690,30 @@ function renderProgress() {
 }
 
 function renderCertificates() {
+  const paymentModeLabel = state.contract.configured ? "onchain-paid" : "not-configured";
+
   return `
+    ${renderWalletCard()}
+
     <section class="card">
       <h2>Certificates</h2>
-      <p>Lessons stay free. Certificates are optional paid credentials.</p>
+      <p>Lessons stay free. Certificates are optional paid credentials on Base mainnet.</p>
       <div class="cert-grid">
         ${CERTIFICATES.map((cert) => renderCertificateCard(cert)).join("")}
       </div>
-      <p class="footer-note">Current payment mode: ${escapeHtml(APP_CONFIG.paymentMode)} (demo for MVP)</p>
+      <p class="footer-note">Current payment mode: ${escapeHtml(paymentModeLabel)}</p>
+      <p class="footer-note">${escapeHtml(state.contract.message || "")}</p>
     </section>
+
+    ${renderAdminPanel()}
   `;
 }
 
 function renderCertificateCard(cert) {
   const eligible = isCertificateEligible(cert);
   const owned = Boolean(state.certificates[cert.id]);
+  const priceLabel = getCertificatePriceLabel(cert.id, cert.priceUsd);
+  const onchainReady = state.contract.configured;
 
   const status = owned
     ? "Claimed"
@@ -613,7 +723,9 @@ function renderCertificateCard(cert) {
 
   const buttonLabel = owned
     ? "Already Claimed"
-    : `Claim for $${Number(cert.priceUsd).toFixed(2)}`;
+    : onchainReady
+      ? `Mint for ${priceLabel}`
+      : "Mint unavailable";
 
   const description = cert.trackId === "all"
     ? "Requires all 20 lessons completed."
@@ -628,9 +740,70 @@ function renderCertificateCard(cert) {
         <span>Type: ${escapeHtml(cert.type)}</span>
       </div>
       <div class="action-row">
-        <button class="primary-button" data-action="claim-cert" data-id="${cert.id}" ${!eligible || owned ? "disabled" : ""} type="button">${buttonLabel}</button>
+        <button class="primary-button" data-action="claim-cert" data-id="${cert.id}" ${!eligible || owned || !onchainReady ? "disabled" : ""} type="button">${buttonLabel}</button>
       </div>
     </article>
+  `;
+}
+
+function renderWalletCard() {
+  const walletAddress = state.wallet.address || "Not connected";
+  const chainName = state.wallet.chainId === APP_CONFIG.expectedChainId ? "Base Mainnet" : "Unknown chain";
+  const isConnected = state.wallet.status === "connected";
+  const connectButton = isConnected
+    ? '<button class="secondary-button" data-action="disconnect-wallet" type="button">Disconnect</button>'
+    : '<button class="primary-button" data-action="connect-wallet" type="button">Connect Wallet</button>';
+
+  return `
+    <section class="card">
+      <h2>Wallet</h2>
+      <p>Connect only when minting or withdrawing. Learning flow does not require wallet connection.</p>
+      <div class="meta-row">
+        <span>Status: ${escapeHtml(state.wallet.status)}</span>
+        <span>Provider: ${state.wallet.usingMiniAppProvider ? "Mini App" : "Injected"}</span>
+      </div>
+      <div class="copy-block">
+        <ul>
+          <li>Address: ${escapeHtml(walletAddress)}</li>
+          <li>Chain: ${escapeHtml(chainName)}</li>
+        </ul>
+      </div>
+      <p class="footer-note">${escapeHtml(state.wallet.message || "")}</p>
+      <div class="action-row">
+        ${connectButton}
+        <button class="secondary-button" data-action="refresh-contract" type="button">Refresh Contract</button>
+      </div>
+    </section>
+  `;
+}
+
+function renderAdminPanel() {
+  const connected = state.wallet.status === "connected";
+  const adminWallet = (state.contract.adminWallet || APP_CONFIG.adminWallet || "").toLowerCase();
+  const isAdmin = connected && adminWallet && state.wallet.address.toLowerCase() === adminWallet;
+
+  if (!isAdmin) {
+    return "";
+  }
+
+  const balanceEth = formatWeiToEth(state.contract.balanceWei);
+  const withdrawDisabled = !state.contract.configured || !state.contract.balanceWei || state.contract.balanceWei === "0";
+
+  return `
+    <section class="card">
+      <h2>Admin Panel</h2>
+      <p>Visible only to deployer/admin wallet.</p>
+      <div class="copy-block">
+        <ul>
+          <li>Admin wallet: ${escapeHtml(state.contract.adminWallet || APP_CONFIG.adminWallet)}</li>
+          <li>Contract: ${escapeHtml(state.contract.contractAddress || "not configured")}</li>
+          <li>Revenue balance: ${escapeHtml(balanceEth)} ETH</li>
+        </ul>
+      </div>
+      <div class="action-row">
+        <button class="primary-button" data-action="withdraw-all" type="button" ${withdrawDisabled ? "disabled" : ""}>Withdraw All</button>
+      </div>
+    </section>
   `;
 }
 
@@ -649,9 +822,10 @@ function renderAbout() {
         <h4>Build Notes</h4>
         <ul>
           <li>Version: ${escapeHtml(APP_CONFIG.appVersion)}</li>
-          <li>Launch mode: content-first, no mandatory onchain actions.</li>
+          <li>Launch mode: content-first with optional paid onchain certificates.</li>
           <li>Learner ID: ${state.account.learnerId ? escapeHtml(state.account.learnerId) : "not set"}</li>
           <li>Sync status: ${escapeHtml(getCloudStatusLabel())}</li>
+          <li>Contract status: ${state.contract.configured ? "configured" : "not configured"}</li>
           <li>Date baseline: March 4, 2026.</li>
         </ul>
       </div>
@@ -704,17 +878,6 @@ function isLessonComplete(lessonId) {
   return Boolean(state.progress.lessons[lessonId]?.passed);
 }
 
-function updateLessonProgress(lessonId, score, passed) {
-  const existing = state.progress.lessons[lessonId] || { attempts: 0 };
-
-  state.progress.lessons[lessonId] = {
-    attempts: existing.attempts + 1,
-    score,
-    passed,
-    completedAt: passed ? new Date().toISOString() : existing.completedAt || null
-  };
-}
-
 function isCertificateEligible(cert) {
   if (cert.trackId === "all") {
     return LESSONS.every((lesson) => isLessonComplete(lesson.id));
@@ -737,23 +900,88 @@ async function claimCertificate(certId) {
     return;
   }
 
-  if (APP_CONFIG.paymentMode === "demo") {
-    const accepted = window.confirm(`Demo mode: simulate payment of $${cert.priceUsd.toFixed(2)} to claim ${cert.name}?`);
-    if (!accepted) return;
+  if (!state.contract.configured) {
+    window.alert("Certificate contract is not configured yet.");
+    return;
+  }
+
+  if (!state.account.learnerId) {
+    window.alert("Set your learner ID first so your progress can be verified before mint.");
+    return;
+  }
+
+  if (!state.cloud.storageReady) {
+    window.alert("Cloud storage is not ready yet. Configure Neon in Vercel before minting.");
+    return;
+  }
+
+  try {
+    await syncAllProgressToCloud();
+
+    const walletAddress = await connectWallet();
+    if (!walletAddress) {
+      return;
+    }
+
+    await ensureBaseMainnet();
+    await ensureWalletAuth();
+
+    const quoteResponse = await apiPost("/api/certificate-quote", {
+      learnerId: state.account.learnerId,
+      learnerSecret: state.account.learnerSecret,
+      certificateId: cert.id,
+      walletAddress
+    }, {
+      headers: getAuthHeaders()
+    });
+
+    const quote = quoteResponse.quote;
+    const priceEth = formatWeiToEth(quote.priceWei);
+    const accepted = window.confirm(
+      `Mint ${cert.name} for ${priceEth} ETH on Base?\n\nYou will pay gas + certificate price from your wallet.`
+    );
+    if (!accepted) {
+      return;
+    }
+
+    const txHash = await sendWalletTransaction(quote.txRequest);
+    state.wallet.message = `Mint submitted: ${shortTx(txHash)}`;
+    render();
+
+    const receipt = await waitForTransactionReceipt(txHash);
+    if (receipt.status !== "0x1") {
+      throw new Error("transaction_reverted");
+    }
 
     state.certificates[cert.id] = {
       claimedAt: new Date().toISOString(),
-      paymentMode: "demo"
+      paymentMode: "basepay",
+      paymentRef: txHash,
+      walletAddress,
+      paymentAmountWei: quote.priceWei
     };
 
     saveState();
     render();
-    await pushCertificateToCloud(cert.id, "demo");
-    window.alert(`Certificate claimed: ${cert.name}`);
+
+    await ensureWalletAuth();
+    await pushCertificateToCloud(cert.id, cert.typeId, "basepay", {
+      paymentRef: txHash,
+      walletAddress,
+      paymentAmountWei: quote.priceWei
+    });
+
+    await loadContractStatus();
+    state.wallet.message = "Certificate minted successfully.";
+    render();
+
+    window.alert(`Certificate minted: ${cert.name}`);
+  } catch (error) {
+    state.wallet.message = `Mint failed: ${error.message}`;
+    render();
+    window.alert(`Mint failed: ${error.message}`);
     return;
   }
-
-  window.alert("Base Pay mode is not wired yet. Keep demo mode for now.");
 }
 
 function navigate(path) {
@@ -775,10 +1003,12 @@ function syncRouteFromHash() {
 }
 
 function saveState() {
+  localStorage.setItem(STORAGE_KEYS.quizResults, JSON.stringify(state.quizResults));
   localStorage.setItem(STORAGE_KEYS.progress, JSON.stringify(state.progress));
   localStorage.setItem(STORAGE_KEYS.certificates, JSON.stringify(state.certificates));
   localStorage.setItem(STORAGE_KEYS.prefs, JSON.stringify(state.prefs));
   localStorage.setItem(STORAGE_KEYS.account, JSON.stringify(state.account));
+  localStorage.setItem(STORAGE_KEYS.auth, JSON.stringify(state.auth));
 }
 
 function normalizeLearnerId(rawValue) {
@@ -794,8 +1024,31 @@ function normalizeLearnerId(rawValue) {
   return safe;
 }
 
+function generateLearnerSecret() {
+  const bytes = new Uint8Array(24);
+  if (window.crypto?.getRandomValues) {
+    window.crypto.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < bytes.length; i += 1) {
+      bytes[i] = Math.floor(Math.random() * 256);
+    }
+  }
+
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
 function canSyncCloud() {
-  return Boolean(APP_CONFIG.enableCloudSync && state.cloud.storageReady && state.account.learnerId);
+  return Boolean(
+    APP_CONFIG.enableCloudSync &&
+    state.cloud.storageReady &&
+    state.account.learnerId &&
+    state.account.learnerSecret
+  );
 }
 
 function getCloudStatusLabel() {
@@ -858,6 +1111,376 @@ async function initializeCloud() {
   }
 }
 
+let miniAppProvider = null;
+let walletListenersAttached = false;
+
+async function initializeOnchain() {
+  await initializeMiniAppProvider();
+  await loadContractStatus();
+}
+
+async function initializeMiniAppProvider() {
+  try {
+    const module = await import("https://esm.sh/@farcaster/miniapp-sdk@0.2.3");
+    const sdk = module.default || module.sdk || null;
+
+    if (sdk?.actions?.ready) {
+      sdk.actions.ready();
+    }
+
+    if (sdk?.wallet?.getEthereumProvider) {
+      const provider = await sdk.wallet.getEthereumProvider();
+      if (provider) {
+        miniAppProvider = provider;
+        state.wallet.usingMiniAppProvider = true;
+        state.wallet.message = "Mini app wallet provider detected.";
+      }
+    }
+  } catch {
+    state.wallet.usingMiniAppProvider = false;
+  }
+}
+
+function getEthereumProvider() {
+  if (miniAppProvider) {
+    return miniAppProvider;
+  }
+
+  if (typeof window !== "undefined" && window.ethereum) {
+    return window.ethereum;
+  }
+
+  if (typeof window !== "undefined" && window.coinbaseWalletExtension?.ethereum) {
+    return window.coinbaseWalletExtension.ethereum;
+  }
+
+  return null;
+}
+
+function attachWalletListeners(provider) {
+  if (!provider || walletListenersAttached || typeof provider.on !== "function") {
+    return;
+  }
+
+  provider.on("accountsChanged", (accounts) => {
+    const address = Array.isArray(accounts) && accounts.length ? String(accounts[0]) : "";
+    if (!address) {
+      disconnectWallet();
+      return;
+    }
+
+    if (
+      state.auth.walletAddress &&
+      state.auth.walletAddress.toLowerCase() !== address.toLowerCase()
+    ) {
+      clearAuthSession();
+    }
+
+    state.wallet.address = address;
+    state.wallet.status = "connected";
+    state.wallet.message = "Wallet account updated.";
+    saveState();
+    render();
+  });
+
+  provider.on("chainChanged", (chainIdHex) => {
+    const chainId = Number.parseInt(String(chainIdHex || "0x0"), 16);
+    state.wallet.chainId = Number.isFinite(chainId) ? chainId : null;
+    state.wallet.message = chainId === APP_CONFIG.expectedChainId
+      ? "Connected to Base mainnet."
+      : "Switch to Base mainnet to mint.";
+    render();
+  });
+
+  walletListenersAttached = true;
+}
+
+async function connectWallet() {
+  const provider = getEthereumProvider();
+  if (!provider) {
+    throw new Error("No wallet provider found. Open this inside Base app or Coinbase Wallet.");
+  }
+
+  state.wallet.status = "connecting";
+  state.wallet.message = "Requesting wallet connection...";
+  render();
+
+  const accounts = await provider.request({ method: "eth_requestAccounts" });
+  const address = Array.isArray(accounts) && accounts.length ? String(accounts[0]) : "";
+  if (!address) {
+    state.wallet.status = "disconnected";
+    state.wallet.message = "Wallet connection canceled.";
+    render();
+    return "";
+  }
+
+  const chainIdHex = await provider.request({ method: "eth_chainId" });
+  const chainId = Number.parseInt(String(chainIdHex || "0x0"), 16);
+
+  state.wallet.status = "connected";
+  state.wallet.address = address;
+  state.wallet.chainId = Number.isFinite(chainId) ? chainId : null;
+  if (
+    state.auth.walletAddress &&
+    state.auth.walletAddress.toLowerCase() !== address.toLowerCase()
+  ) {
+    clearAuthSession();
+  }
+
+  state.wallet.message = chainId === APP_CONFIG.expectedChainId
+    ? "Wallet connected."
+    : "Wallet connected. Switch to Base mainnet to mint.";
+
+  attachWalletListeners(provider);
+  saveState();
+  render();
+  return address;
+}
+
+function disconnectWallet() {
+  clearAuthSession();
+  state.wallet.status = "disconnected";
+  state.wallet.address = "";
+  state.wallet.chainId = null;
+  state.wallet.message = "Wallet disconnected from app session.";
+  saveState();
+  render();
+}
+
+async function ensureBaseMainnet() {
+  const provider = getEthereumProvider();
+  if (!provider) {
+    throw new Error("Wallet provider not found.");
+  }
+
+  let chainIdHex = await provider.request({ method: "eth_chainId" });
+  if (String(chainIdHex).toLowerCase() !== APP_CONFIG.expectedChainHex) {
+    try {
+      await provider.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: APP_CONFIG.expectedChainHex }]
+      });
+      chainIdHex = await provider.request({ method: "eth_chainId" });
+    } catch (switchError) {
+      const code = Number(switchError?.code);
+      if (code === 4902) {
+        await provider.request({
+          method: "wallet_addEthereumChain",
+          params: [{
+            chainId: APP_CONFIG.expectedChainHex,
+            chainName: "Base",
+            nativeCurrency: {
+              name: "Ether",
+              symbol: "ETH",
+              decimals: 18
+            },
+            rpcUrls: ["https://mainnet.base.org"],
+            blockExplorerUrls: ["https://basescan.org"]
+          }]
+        });
+        chainIdHex = await provider.request({ method: "eth_chainId" });
+      } else {
+        throw switchError;
+      }
+    }
+  }
+
+  const chainId = Number.parseInt(String(chainIdHex || "0x0"), 16);
+  state.wallet.chainId = chainId;
+  if (chainId !== APP_CONFIG.expectedChainId) {
+    throw new Error("Please switch to Base mainnet.");
+  }
+}
+
+async function sendWalletTransaction(txRequest) {
+  const provider = getEthereumProvider();
+  if (!provider) {
+    throw new Error("Wallet provider not available.");
+  }
+
+  if (!state.wallet.address) {
+    throw new Error("Wallet is not connected.");
+  }
+
+  return provider.request({
+    method: "eth_sendTransaction",
+    params: [{
+      from: state.wallet.address,
+      to: txRequest.to,
+      data: txRequest.data,
+      value: txRequest.value || "0x0"
+    }]
+  });
+}
+
+async function waitForTransactionReceipt(txHash, timeoutMs = 180000) {
+  const provider = getEthereumProvider();
+  if (!provider) {
+    throw new Error("Wallet provider not available.");
+  }
+
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    const receipt = await provider.request({
+      method: "eth_getTransactionReceipt",
+      params: [txHash]
+    });
+
+    if (receipt) {
+      return receipt;
+    }
+
+    await sleep(2000);
+  }
+
+  throw new Error("Transaction confirmation timeout.");
+}
+
+async function loadContractStatus() {
+  state.contract.loading = true;
+  state.contract.message = "Loading contract status...";
+  render();
+
+  try {
+    const data = await apiGet("/api/contract-status");
+    const contract = data.contract || {};
+    const pricing = {};
+
+    for (const item of data.certificates || []) {
+      pricing[item.certificateId] = String(item.priceWei || "0");
+    }
+
+    state.contract.loading = false;
+    state.contract.configured = Boolean(contract.configured);
+    state.contract.contractAddress = contract.contractAddress || "";
+    state.contract.adminWallet = contract.adminWallet || APP_CONFIG.adminWallet;
+    state.contract.chainId = Number(contract.chainId || APP_CONFIG.expectedChainId);
+    state.contract.balanceWei = String(contract.balanceWei || "0");
+    state.contract.certificatePricing = pricing;
+    state.contract.message = state.contract.configured
+      ? "Contract ready for paid minting."
+      : "Contract not configured yet.";
+  } catch (error) {
+    state.contract.loading = false;
+    state.contract.configured = false;
+    state.contract.contractAddress = "";
+    state.contract.balanceWei = "0";
+    state.contract.certificatePricing = {};
+    state.contract.message = `Contract status unavailable: ${error.message}`;
+  }
+
+  render();
+}
+
+async function syncAllProgressToCloud() {
+  if (!canSyncCloud()) {
+    throw new Error("Cloud sync is required before minting.");
+  }
+
+  let remoteLessons = {};
+  try {
+    const remoteData = await apiGet(
+      `/api/profile?learnerId=${encodeURIComponent(state.account.learnerId)}&learnerSecret=${encodeURIComponent(state.account.learnerSecret)}`
+    );
+    remoteLessons = remoteData.profile?.lessons || {};
+  } catch (error) {
+    if (error.message !== "learner_secret_not_initialized") {
+      throw error;
+    }
+  }
+  const pendingQuizResults = Object.entries(state.quizResults)
+    .filter(([lessonId, quizResult]) => quizResult?.passed && !remoteLessons[lessonId]?.passed);
+
+  for (const [lessonId, quizResult] of pendingQuizResults) {
+    const answers = {};
+    for (const item of quizResult.breakdown || []) {
+      if (!item || !item.id || !Number.isInteger(item.userAnswer) || item.userAnswer < 0) {
+        continue;
+      }
+
+      answers[item.id] = item.userAnswer;
+    }
+
+    if (Object.keys(answers).length === 0) {
+      continue;
+    }
+
+    await apiPost("/api/progress", {
+      learnerId: state.account.learnerId,
+      learnerSecret: state.account.learnerSecret,
+      lessonId,
+      answers
+    });
+  }
+
+  await loadCloudProfile();
+}
+
+async function withdrawAllRevenue() {
+  if (state.wallet.status !== "connected" || !state.wallet.address) {
+    window.alert("Connect admin wallet first.");
+    return;
+  }
+
+  const adminWallet = (state.contract.adminWallet || APP_CONFIG.adminWallet || "").toLowerCase();
+  if (!adminWallet || state.wallet.address.toLowerCase() !== adminWallet) {
+    window.alert("Only deployer/admin wallet can withdraw.");
+    return;
+  }
+
+  if (!state.contract.configured || !state.contract.balanceWei || state.contract.balanceWei === "0") {
+    window.alert("No withdrawable balance.");
+    return;
+  }
+
+  const amountWei = state.contract.balanceWei;
+  const amountEth = formatWeiToEth(amountWei);
+  const accepted = window.confirm(`Withdraw ${amountEth} ETH to admin wallet?`);
+  if (!accepted) {
+    return;
+  }
+
+  try {
+    await ensureBaseMainnet();
+    await ensureWalletAuth();
+
+    const intentResponse = await apiPost("/api/admin-withdraw-intent", {
+      walletAddress: state.wallet.address,
+      toAddress: state.wallet.address,
+      amountWei
+    }, {
+      headers: getAuthHeaders()
+    });
+
+    const txHash = await sendWalletTransaction(intentResponse.intent.txRequest);
+    state.wallet.message = `Withdraw submitted: ${shortTx(txHash)}`;
+    render();
+
+    const receipt = await waitForTransactionReceipt(txHash);
+    if (receipt.status !== "0x1") {
+      throw new Error("withdraw_transaction_reverted");
+    }
+
+    await apiPost("/api/admin-withdraw-log", {
+      walletAddress: state.wallet.address,
+      toAddress: state.wallet.address,
+      txHash,
+      amountWei
+    }, {
+      headers: getAuthHeaders()
+    });
+
+    state.wallet.message = "Withdraw completed.";
+    await loadContractStatus();
+    render();
+    window.alert(`Withdraw complete. Tx: ${txHash}`);
+  } catch (error) {
+    state.wallet.message = `Withdraw failed: ${error.message}`;
+    render();
+    window.alert(`Withdraw failed: ${error.message}`);
+  }
+}
+
 async function loadCloudProfile() {
   if (!canSyncCloud()) {
     render();
@@ -865,60 +1488,48 @@ async function loadCloudProfile() {
   }
 
   try {
-    const data = await apiGet(`/api/profile?learnerId=${encodeURIComponent(state.account.learnerId)}`);
+    const data = await apiGet(
+      `/api/profile?learnerId=${encodeURIComponent(state.account.learnerId)}&learnerSecret=${encodeURIComponent(state.account.learnerSecret)}`
+    );
     mergeProfileFromCloud(data.profile);
     state.cloud.mode = "ready";
     state.cloud.message = "Cloud profile synced.";
     saveState();
     render();
   } catch (error) {
+    if (error.message === "learner_secret_not_initialized") {
+      state.cloud.mode = "ready";
+      state.cloud.message = "Cloud profile will initialize after your first quiz submission.";
+      render();
+      return;
+    }
+
     state.cloud.mode = "error";
     state.cloud.message = `Cloud sync failed: ${error.message}`;
     render();
   }
 }
 
-async function pushProgressToCloud(lessonId) {
-  if (!canSyncCloud()) {
-    return;
-  }
-
-  const record = state.progress.lessons[lessonId];
-  if (!record) {
-    return;
-  }
-
-  try {
-    const data = await apiPost("/api/progress", {
-      learnerId: state.account.learnerId,
-      lessonId,
-      score: record.score,
-      passed: record.passed
-    });
-
-    mergeProfileFromCloud(data.profile);
-    state.cloud.mode = "ready";
-    state.cloud.message = "Progress synced.";
-    saveState();
-    render();
-  } catch (error) {
-    state.cloud.mode = "error";
-    state.cloud.message = `Progress sync failed: ${error.message}`;
-    render();
-  }
-}
-
-async function pushCertificateToCloud(certificateId, paymentMode) {
+async function pushCertificateToCloud(certificateId, certificateTypeId, paymentMode, paymentData = {}) {
   if (!canSyncCloud()) {
     return;
   }
 
   try {
+    const requestOptions = paymentMode === "basepay"
+      ? { headers: getAuthHeaders() }
+      : undefined;
+
     const data = await apiPost("/api/certificate-claim", {
       learnerId: state.account.learnerId,
+      learnerSecret: state.account.learnerSecret,
       certificateId,
-      paymentMode: paymentMode || "demo"
-    });
+      certificateTypeId,
+      paymentMode: paymentMode || "demo",
+      paymentRef: paymentData.paymentRef || null,
+      walletAddress: paymentData.walletAddress || null,
+      paymentAmountWei: paymentData.paymentAmountWei || null
+    }, requestOptions);
 
     mergeProfileFromCloud(data.profile);
     state.cloud.mode = "ready";
@@ -965,6 +1576,160 @@ function mergeProfileFromCloud(profile) {
   }
 }
 
+function clearAuthSession() {
+  state.auth = {
+    token: "",
+    learnerId: "",
+    walletAddress: "",
+    expiresAt: ""
+  };
+}
+
+function hasValidAuthSession() {
+  if (!state.auth.token || !state.auth.expiresAt) {
+    return false;
+  }
+
+  const expiresAtMs = Date.parse(state.auth.expiresAt);
+  if (!Number.isFinite(expiresAtMs) || Date.now() >= expiresAtMs) {
+    return false;
+  }
+
+  if (!state.account.learnerId || state.auth.learnerId !== state.account.learnerId) {
+    return false;
+  }
+
+  if (!state.wallet.address || state.auth.walletAddress.toLowerCase() !== state.wallet.address.toLowerCase()) {
+    return false;
+  }
+
+  return true;
+}
+
+function buildWalletAuthMessage({ learnerId, walletAddress, issuedAt, expiresAt }) {
+  return [
+    "Learn Base Wallet Authentication",
+    `learner_id:${String(learnerId).trim().toLowerCase()}`,
+    `wallet:${String(walletAddress).trim().toLowerCase()}`,
+    `issued_at:${issuedAt}`,
+    `expires_at:${expiresAt}`
+  ].join("\n");
+}
+
+async function signPersonalMessage(message, walletAddress) {
+  const provider = getEthereumProvider();
+  if (!provider) {
+    throw new Error("Wallet provider not available.");
+  }
+
+  try {
+    return await provider.request({
+      method: "personal_sign",
+      params: [message, walletAddress]
+    });
+  } catch {
+    return provider.request({
+      method: "personal_sign",
+      params: [walletAddress, message]
+    });
+  }
+}
+
+async function authenticateWalletSession() {
+  if (!state.account.learnerId) {
+    throw new Error("Set learner ID first.");
+  }
+
+  if (!state.wallet.address) {
+    throw new Error("Connect wallet first.");
+  }
+
+  const issuedAt = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  const message = buildWalletAuthMessage({
+    learnerId: state.account.learnerId,
+    walletAddress: state.wallet.address,
+    issuedAt,
+    expiresAt
+  });
+
+  const signature = await signPersonalMessage(message, state.wallet.address);
+  const data = await apiPost("/api/auth-wallet", {
+    learnerId: state.account.learnerId,
+    learnerSecret: state.account.learnerSecret,
+    walletAddress: state.wallet.address,
+    issuedAt,
+    expiresAt,
+    signature
+  });
+
+  state.auth = {
+    token: data.token || "",
+    learnerId: state.account.learnerId,
+    walletAddress: state.wallet.address,
+    expiresAt
+  };
+  saveState();
+}
+
+async function ensureWalletAuth() {
+  if (hasValidAuthSession()) {
+    return;
+  }
+
+  await authenticateWalletSession();
+}
+
+function getAuthHeaders() {
+  if (!hasValidAuthSession()) {
+    return {};
+  }
+
+  return {
+    Authorization: `Bearer ${state.auth.token}`
+  };
+}
+
+function getCertificatePriceLabel(certificateId, fallbackUsd) {
+  const priceWei = state.contract.certificatePricing[certificateId];
+  if (priceWei && priceWei !== "0") {
+    return `${formatWeiToEth(priceWei)} ETH`;
+  }
+
+  if (Number.isFinite(Number(fallbackUsd))) {
+    return `$${Number(fallbackUsd).toFixed(2)}`;
+  }
+
+  return "N/A";
+}
+
+function formatWeiToEth(weiValue) {
+  try {
+    const wei = BigInt(String(weiValue || "0"));
+    const whole = wei / 1000000000000000000n;
+    const fraction = wei % 1000000000000000000n;
+    const fractionText = fraction.toString().padStart(18, "0").slice(0, 6).replace(/0+$/, "");
+    return fractionText ? `${whole.toString()}.${fractionText}` : whole.toString();
+  } catch {
+    return "0";
+  }
+}
+
+function shortTx(txHash) {
+  const value = String(txHash || "");
+  if (value.length < 12) {
+    return value;
+  }
+
+  return `${value.slice(0, 8)}...${value.slice(-6)}`;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
 async function apiGet(url) {
   const response = await fetch(url, {
     method: "GET",
@@ -981,12 +1746,14 @@ async function apiGet(url) {
   return data;
 }
 
-async function apiPost(url, payload) {
+async function apiPost(url, payload, options = {}) {
+  const extraHeaders = options.headers && typeof options.headers === "object" ? options.headers : {};
   const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Accept: "application/json"
+      Accept: "application/json",
+      ...extraHeaders
     },
     body: JSON.stringify(payload)
   });

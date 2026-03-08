@@ -250,6 +250,10 @@ li {
   line-height: 1.45;
 }
 
+li {
+  word-break: break-word;
+}
+
 .meta-row {
   margin-top: 8px;
   font-size: 0.8rem;

@@ -1,0 +1,58 @@
+[
+  {
+    "certificateId": "cert-fundamentals",
+    "typeId": 1,
+    "trackId": "fundamentals",
+    "priceWei": "300000000000000",
+    "requiredLessonIds": ["L1", "L2", "L3", "L4", "L5"]
+  },
+  {
+    "certificateId": "cert-safety",
+    "typeId": 2,
+    "trackId": "safety",
+    "priceWei": "300000000000000",
+    "requiredLessonIds": ["L6", "L7", "L8", "L9", "L10"]
+  },
+  {
+    "certificateId": "cert-concepts",
+    "typeId": 3,
+    "trackId": "concepts",
+    "priceWei": "300000000000000",
+    "requiredLessonIds": ["L11", "L12", "L13", "L14", "L15"]
+  },
+  {
+    "certificateId": "cert-technical",
+    "typeId": 4,
+    "trackId": "technical",
+    "priceWei": "300000000000000",
+    "requiredLessonIds": ["L16", "L17", "L18", "L19", "L20"]
+  },
+  {
+    "certificateId": "cert-master",
+    "typeId": 5,
+    "trackId": "all",
+    "priceWei": "900000000000000",
+    "requiredLessonIds": [
+      "L1",
+      "L2",
+      "L3",
+      "L4",
+      "L5",
+      "L6",
+      "L7",
+      "L8",
+      "L9",
+      "L10",
+      "L11",
+      "L12",
+      "L13",
+      "L14",
+      "L15",
+      "L16",
+      "L17",
+      "L18",
+      "L19",
+      "L20"
+    ]
+  }
+]
