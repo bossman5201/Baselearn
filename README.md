@@ -89,9 +89,9 @@ Set these in Vercel Project Settings -> Environment Variables:
 
 ## Reconciliation cron
 
-- `vercel.json` schedules `/api/reconcile-chain` every 5 minutes.
-- Set either `LEARN_BASE_RECONCILE_SECRET` or `CRON_SECRET` in Vercel.
-- If you use Vercel `CRON_SECRET`, Vercel sends `Authorization: Bearer <CRON_SECRET>` automatically.
+- Schedule `GET /api/reconcile-chain` every 5 minutes using Vercel Cron (if enabled on your plan) or an external scheduler.
+- Set `LEARN_BASE_RECONCILE_SECRET` (or `CRON_SECRET`) in Vercel.
+- Send `Authorization: Bearer <secret>` (or `x-cron-secret: <secret>`) with each scheduler request.
 
 ## Smart contract status
 
