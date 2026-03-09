@@ -71,6 +71,7 @@ const state = {
   route: { page: "home", id: null },
   searchTerm: "",
   quizResults: loadJson(STORAGE_KEYS.quizResults, {}),
+  quizUi: {},
   progress: loadJson(STORAGE_KEYS.progress, { lessons: {} }),
   certificates: loadJson(STORAGE_KEYS.certificates, {}),
   prefs: loadJson(STORAGE_KEYS.prefs, { disclaimerSeen: false, themeId: DEFAULT_THEME_ID }),
@@ -169,12 +170,19 @@ appEl.addEventListener("click", (event) => {
   }
 
   if (action === "start-quiz") {
+    state.quizUi[id] = { forceRetake: true };
     navigate(`quiz/${id}`);
     return;
   }
 
   if (action === "open-next") {
     navigate(`lesson/${id}`);
+    return;
+  }
+
+  if (action === "retry-quiz") {
+    state.quizUi[id] = { forceRetake: true };
+    render();
     return;
   }
 
@@ -287,6 +295,10 @@ appEl.addEventListener("submit", async (event) => {
   const lesson = LESSON_MAP.get(lessonId);
   if (!lesson) return;
 
+  if (form.dataset.submitting === "1") {
+    return;
+  }
+
   if (!state.account.learnerId) {
     window.alert("Set your learner ID first to submit quizzes.");
     return;
@@ -312,6 +324,13 @@ appEl.addEventListener("submit", async (event) => {
   lesson.quiz.forEach((q) => {
     answers[q.id] = Number(formData.get(q.id));
   });
+
+  const submitButton = form.querySelector('button[type="submit"]');
+  form.dataset.submitting = "1";
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = "Grading...";
+  }
 
   try {
     const data = await apiPost("/api/progress", {
@@ -347,6 +366,20 @@ appEl.addEventListener("submit", async (event) => {
       completedAt: new Date().toISOString()
     };
 
+    const localRecord = state.progress.lessons[lessonId] || { attempts: 0, score: 0, passed: false, completedAt: null };
+    const nowIso = new Date().toISOString();
+    const resultPassed = Boolean(result.passed);
+    const nextPassed = Boolean(localRecord.passed) || resultPassed;
+    state.progress.lessons[lessonId] = {
+      attempts: Number(localRecord.attempts || 0) + 1,
+      score: Math.max(Number(localRecord.score || 0), Number(result.score || 0)),
+      passed: nextPassed,
+      lastAttemptAt: nowIso,
+      completedAt: localRecord.completedAt || (nextPassed ? nowIso : null)
+    };
+
+    state.quizUi[lessonId] = { forceRetake: false };
+
     mergeProfileFromCloud(data.profile);
     state.cloud.mode = "ready";
     state.cloud.message = "Progress synced.";
@@ -357,6 +390,14 @@ appEl.addEventListener("submit", async (event) => {
     state.cloud.message = `Progress sync failed: ${error.message}`;
     render();
     window.alert(`Quiz submission failed: ${error.message}`);
+  } finally {
+    if (form.isConnected) {
+      form.dataset.submitting = "0";
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = "Submit Quiz";
+      }
+    }
   }
 });
 
@@ -652,6 +693,7 @@ function renderQuiz(lessonId) {
   if (!lesson) return renderNotFound("Lesson quiz not found.");
 
   const result = state.quizResults[lessonId];
+  const quizUi = state.quizUi[lessonId] || {};
   const current = state.progress.lessons[lessonId];
   const passed = Boolean(current?.passed || result?.passed);
   const latestScore = Number(current?.score ?? result?.score ?? 0);
@@ -670,6 +712,20 @@ function renderQuiz(lessonId) {
         <div class="action-row">
           ${nextLessonId ? `<button class="primary-button" data-action="open-next" data-id="${nextLessonId}" type="button">Next Lesson</button>` : '<button class="primary-button" data-action="open-certs" type="button">View Certificates</button>'}
           <button class="secondary-button" data-action="open-track" data-id="${lesson.trackId}" type="button">Back to Track</button>
+        </div>
+      </section>
+    `;
+  }
+
+  if (result && !quizUi.forceRetake) {
+    return `
+      <section class="card">
+        <h2>${escapeHtml(lesson.title)} Quiz</h2>
+        <p>Review your latest attempt before retrying.</p>
+        ${renderQuizResult(result)}
+        <div class="action-row">
+          <button class="primary-button" data-action="retry-quiz" data-id="${lesson.id}" type="button">Retake Quiz</button>
+          <button class="secondary-button" data-action="open-lesson" data-id="${lesson.id}" type="button">Back to Lesson</button>
         </div>
       </section>
     `;
