@@ -282,6 +282,28 @@ body[data-theme="ocean-prism"] {
   --callout-border: rgba(14, 165, 233, 0.32);
 }
 
+body[data-theme="ocean-prism"] .card {
+  background:
+    linear-gradient(152deg, rgba(255, 255, 255, 0.52) 0%, rgba(219, 244, 255, 0.38) 100%),
+    var(--glass-bg);
+  border-color: rgba(255, 255, 255, 0.78);
+}
+
+body[data-theme="ocean-prism"] .track-card,
+body[data-theme="ocean-prism"] .lesson-card,
+body[data-theme="ocean-prism"] .cert-card,
+body[data-theme="ocean-prism"] .stat-card,
+body[data-theme="ocean-prism"] .quiz-question {
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.5) 0%, rgba(207, 250, 254, 0.3) 100%),
+    var(--surface-strong);
+  border-color: rgba(255, 255, 255, 0.72);
+}
+
+body[data-theme="ocean-prism"] .topbar {
+  border-color: rgba(255, 255, 255, 0.82);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -313,8 +335,8 @@ body::after {
   border-radius: 999px;
   pointer-events: none;
   z-index: -1;
-  filter: blur(80px);
-  opacity: 0.42;
+  filter: blur(56px);
+  opacity: 0.3;
   transition: transform 600ms ease, opacity 400ms ease, background 400ms ease;
 }
 
@@ -362,8 +384,8 @@ input {
   border-radius: var(--radius-lg);
   padding: 14px 16px;
   box-shadow: var(--glass-shadow);
-  backdrop-filter: blur(18px) saturate(145%);
-  -webkit-backdrop-filter: blur(18px) saturate(145%);
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
 }
 
 .brand-mark {
@@ -423,8 +445,8 @@ input {
   border: 1px solid var(--glass-border);
   padding: 9px 12px;
   font-weight: 700;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .app-main {
@@ -439,8 +461,9 @@ input {
   border-radius: var(--radius-lg);
   box-shadow: var(--glass-shadow);
   padding: 18px;
-  backdrop-filter: blur(20px) saturate(145%);
-  -webkit-backdrop-filter: blur(20px) saturate(145%);
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  contain: paint;
 }
 
 .hero {
@@ -496,8 +519,8 @@ input {
   color: var(--text);
   border-radius: 13px;
   padding: 10px 12px;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .search-input::placeholder {
@@ -521,8 +544,8 @@ input {
   font-weight: 700;
   padding: 4px 10px;
   border: 1px solid rgba(255, 255, 255, 0.26);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .badge.safe {
@@ -556,8 +579,8 @@ input {
   border-radius: var(--radius-md);
   background: var(--surface-muted);
   padding: 14px;
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .track-card h3,
@@ -612,8 +635,8 @@ li {
   border: 1px solid var(--glass-border-strong);
   color: var(--text);
   background: var(--surface-strong);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .link-button {
@@ -642,8 +665,8 @@ li {
   padding: 8px;
   border-radius: 18px;
   box-shadow: var(--nav-shadow);
-  backdrop-filter: blur(18px) saturate(145%);
-  -webkit-backdrop-filter: blur(18px) saturate(145%);
+  backdrop-filter: blur(12px) saturate(125%);
+  -webkit-backdrop-filter: blur(12px) saturate(125%);
 }
 
 .nav-button {
@@ -678,8 +701,8 @@ li {
   border-radius: var(--radius-md);
   background: var(--surface-strong);
   padding: 12px;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .quiz-options {
@@ -767,8 +790,8 @@ li {
   border: 1px solid var(--glass-border);
   background: var(--surface-muted);
   color: var(--text);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .theme-option:hover {
@@ -860,5 +883,30 @@ body[data-theme="emerald-vault"] .nav-button.active {
 
   .bottom-nav {
     border-radius: 14px;
+  }
+}
+
+@media (max-width: 740px) {
+  body::before,
+  body::after {
+    filter: blur(42px);
+    opacity: 0.22;
+  }
+
+  .card {
+    backdrop-filter: blur(10px) saturate(118%);
+    -webkit-backdrop-filter: blur(10px) saturate(118%);
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.16);
+  }
+
+  .topbar {
+    backdrop-filter: blur(10px) saturate(118%);
+    -webkit-backdrop-filter: blur(10px) saturate(118%);
+  }
+
+  .bottom-nav {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: 0 16px 24px rgba(15, 23, 42, 0.24);
   }
 }

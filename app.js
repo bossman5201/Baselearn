@@ -19,6 +19,7 @@ const STORAGE_KEYS = {
 };
 
 const PASSING_SCORE = 70;
+const ENABLE_THEME_STUDIO = false;
 const THEME_OPTIONS = [
   {
     id: "amber-frost",
@@ -56,7 +57,7 @@ const THEME_OPTIONS = [
     color: "#06b6d4"
   }
 ];
-const DEFAULT_THEME_ID = "amber-frost";
+const DEFAULT_THEME_ID = "ocean-prism";
 const THEME_ID_SET = new Set(THEME_OPTIONS.map((theme) => theme.id));
 const THEME_META_COLOR = {
   "amber-frost": "#bc6a18",
@@ -114,6 +115,10 @@ if (state.account.learnerId && !state.account.learnerSecret) {
 }
 
 if (!THEME_ID_SET.has(state.prefs.themeId)) {
+  state.prefs.themeId = DEFAULT_THEME_ID;
+}
+
+if (!ENABLE_THEME_STUDIO) {
   state.prefs.themeId = DEFAULT_THEME_ID;
 }
 
@@ -227,6 +232,10 @@ appEl.addEventListener("click", (event) => {
   }
 
   if (action === "set-theme") {
+    if (!ENABLE_THEME_STUDIO) {
+      return;
+    }
+
     const themeId = actionEl.dataset.theme;
     setTheme(themeId);
     return;
@@ -280,6 +289,11 @@ appEl.addEventListener("submit", async (event) => {
 
   if (!state.account.learnerId) {
     window.alert("Set your learner ID first to submit quizzes.");
+    return;
+  }
+
+  if (state.progress.lessons[lessonId]?.passed) {
+    window.alert("You already passed this quiz. Continue to the next lesson.");
     return;
   }
 
@@ -639,9 +653,27 @@ function renderQuiz(lessonId) {
 
   const result = state.quizResults[lessonId];
   const current = state.progress.lessons[lessonId];
-  const completionNote = current?.passed
-    ? `<div class="result-ok">Last passing score: ${current.score}%</div>`
+  const passed = Boolean(current?.passed || result?.passed);
+  const latestScore = Number(current?.score ?? result?.score ?? 0);
+  const completionNote = passed
+    ? `<div class="result-ok">Last passing score: ${latestScore}%</div>`
     : "";
+  const nextLessonId = getNextLessonInTrack(lessonId);
+
+  if (passed) {
+    return `
+      <section class="card">
+        <h2>${escapeHtml(lesson.title)} Quiz</h2>
+        <p>You already passed this quiz. Repeating it is not required.</p>
+        ${completionNote}
+        ${result ? renderQuizResult(result) : ""}
+        <div class="action-row">
+          ${nextLessonId ? `<button class="primary-button" data-action="open-next" data-id="${nextLessonId}" type="button">Next Lesson</button>` : '<button class="primary-button" data-action="open-certs" type="button">View Certificates</button>'}
+          <button class="secondary-button" data-action="open-track" data-id="${lesson.trackId}" type="button">Back to Track</button>
+        </div>
+      </section>
+    `;
+  }
 
   return `
     <section class="card">
@@ -896,6 +928,10 @@ function renderAbout() {
 }
 
 function renderThemeStudio(context = "home") {
+  if (!ENABLE_THEME_STUDIO) {
+    return "";
+  }
+
   const activeTheme = state.prefs.themeId;
   const title = context === "about"
     ? "Theme Studio"
@@ -1127,6 +1163,10 @@ function normalizeLearnerId(rawValue) {
 }
 
 function setTheme(themeId) {
+  if (!ENABLE_THEME_STUDIO) {
+    return;
+  }
+
   if (!THEME_ID_SET.has(themeId)) {
     return;
   }
@@ -1156,6 +1196,25 @@ function updateMetaThemeColor(themeId) {
 
 function getCurrentTheme() {
   return THEME_OPTIONS.find((theme) => theme.id === state.prefs.themeId) || THEME_OPTIONS[0];
+}
+
+function getNextLessonInTrack(lessonId) {
+  const lesson = LESSON_MAP.get(lessonId);
+  if (!lesson) {
+    return "";
+  }
+
+  const track = TRACK_MAP.get(lesson.trackId);
+  if (!track || !Array.isArray(track.lessonIds)) {
+    return "";
+  }
+
+  const currentIndex = track.lessonIds.indexOf(lessonId);
+  if (currentIndex < 0 || currentIndex >= track.lessonIds.length - 1) {
+    return "";
+  }
+
+  return track.lessonIds[currentIndex + 1] || "";
 }
 
 function generateLearnerSecret() {
