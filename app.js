@@ -19,6 +19,52 @@ const STORAGE_KEYS = {
 };
 
 const PASSING_SCORE = 70;
+const THEME_OPTIONS = [
+  {
+    id: "amber-frost",
+    name: "Amber Frost",
+    subtitle: "Luxury Warm",
+    description: "Golden ambient glass with warm premium contrast.",
+    color: "#f59e0b"
+  },
+  {
+    id: "emerald-vault",
+    name: "Emerald Vault",
+    subtitle: "Trust + Wealth",
+    description: "Deep emerald glass and confident financial tone.",
+    color: "#10b981"
+  },
+  {
+    id: "pearl-gold",
+    name: "Pearl + Gold",
+    subtitle: "High-end Editorial",
+    description: "Pearl translucency, ivory cards, gold highlights.",
+    color: "#ca8a04"
+  },
+  {
+    id: "frosted-onyx",
+    name: "Frosted Onyx",
+    subtitle: "Executive Night",
+    description: "Dark smoked glass with restrained luxury accents.",
+    color: "#f97316"
+  },
+  {
+    id: "ocean-prism",
+    name: "Ocean Prism",
+    subtitle: "Modern Clean",
+    description: "Cool cyan glass layers with modern product energy.",
+    color: "#06b6d4"
+  }
+];
+const DEFAULT_THEME_ID = "amber-frost";
+const THEME_ID_SET = new Set(THEME_OPTIONS.map((theme) => theme.id));
+const THEME_META_COLOR = {
+  "amber-frost": "#bc6a18",
+  "emerald-vault": "#0f766e",
+  "pearl-gold": "#b0891f",
+  "frosted-onyx": "#1f2937",
+  "ocean-prism": "#0e7490"
+};
 
 const state = {
   route: { page: "home", id: null },
@@ -26,7 +72,7 @@ const state = {
   quizResults: loadJson(STORAGE_KEYS.quizResults, {}),
   progress: loadJson(STORAGE_KEYS.progress, { lessons: {} }),
   certificates: loadJson(STORAGE_KEYS.certificates, {}),
-  prefs: loadJson(STORAGE_KEYS.prefs, { disclaimerSeen: false }),
+  prefs: loadJson(STORAGE_KEYS.prefs, { disclaimerSeen: false, themeId: DEFAULT_THEME_ID }),
   account: loadJson(STORAGE_KEYS.account, { learnerId: "", learnerSecret: "" }),
   auth: loadJson(STORAGE_KEYS.auth, {
     token: "",
@@ -67,6 +113,10 @@ if (state.account.learnerId && !state.account.learnerSecret) {
   }
 }
 
+if (!THEME_ID_SET.has(state.prefs.themeId)) {
+  state.prefs.themeId = DEFAULT_THEME_ID;
+}
+
 const appEl = document.getElementById("app");
 const navButtons = Array.from(document.querySelectorAll(".nav-button"));
 const progressButton = document.getElementById("view-progress");
@@ -74,6 +124,7 @@ const progressButton = document.getElementById("view-progress");
 const LESSON_MAP = new Map(LESSONS.map((lesson) => [lesson.id, lesson]));
 const TRACK_MAP = new Map(TRACKS.map((track) => [track.id, track]));
 
+applyTheme(state.prefs.themeId);
 syncRouteFromHash();
 render();
 void initializeCloud();
@@ -172,6 +223,12 @@ appEl.addEventListener("click", (event) => {
     state.account.learnerSecret = "";
     saveState();
     render();
+    return;
+  }
+
+  if (action === "set-theme") {
+    const themeId = actionEl.dataset.theme;
+    setTheme(themeId);
     return;
   }
 });
@@ -372,6 +429,8 @@ function renderHome() {
         <button class="secondary-button" data-action="open-certs" type="button">View Certificates</button>
       </div>
     </section>
+
+    ${renderThemeStudio("home")}
 
     ${renderAccountCard()}
 
@@ -809,6 +868,8 @@ function renderAdminPanel() {
 
 function renderAbout() {
   return `
+    ${renderThemeStudio("about")}
+
     <section class="card">
       <h2>About Learn Base</h2>
       <p>Learn Base is a safety-first education mini app. It teaches concepts before actions and avoids forcing users into risky flows.</p>
@@ -826,8 +887,49 @@ function renderAbout() {
           <li>Learner ID: ${state.account.learnerId ? escapeHtml(state.account.learnerId) : "not set"}</li>
           <li>Sync status: ${escapeHtml(getCloudStatusLabel())}</li>
           <li>Contract status: ${state.contract.configured ? "configured" : "not configured"}</li>
+          <li>Theme: ${escapeHtml(getCurrentTheme()?.name || "Unknown")}</li>
           <li>Date baseline: March 4, 2026.</li>
         </ul>
+      </div>
+    </section>
+  `;
+}
+
+function renderThemeStudio(context = "home") {
+  const activeTheme = state.prefs.themeId;
+  const title = context === "about"
+    ? "Theme Studio"
+    : "Premium Visual Themes";
+  const subtitle = context === "about"
+    ? "Switch instantly between all five full glassmorphism art directions."
+    : "Live switch between five premium glassmorphism design systems.";
+
+  return `
+    <section class="card theme-studio">
+      <div class="theme-studio-header">
+        <h2>${title}</h2>
+        <p>${subtitle}</p>
+      </div>
+      <div class="theme-grid">
+        ${THEME_OPTIONS.map((theme) => {
+          const selected = theme.id === activeTheme;
+          return `
+            <button
+              type="button"
+              class="theme-option ${selected ? "active" : ""}"
+              data-action="set-theme"
+              data-theme="${theme.id}"
+              aria-pressed="${selected ? "true" : "false"}"
+            >
+              <span class="theme-swatch" style="--theme-chip:${theme.color};"></span>
+              <span class="theme-copy">
+                <strong>${theme.name}</strong>
+                <em>${theme.subtitle}</em>
+                <small>${theme.description}</small>
+              </span>
+            </button>
+          `;
+        }).join("")}
       </div>
     </section>
   `;
@@ -1022,6 +1124,38 @@ function normalizeLearnerId(rawValue) {
   }
 
   return safe;
+}
+
+function setTheme(themeId) {
+  if (!THEME_ID_SET.has(themeId)) {
+    return;
+  }
+
+  state.prefs.themeId = themeId;
+  applyTheme(themeId);
+  saveState();
+  render();
+}
+
+function applyTheme(themeId) {
+  const resolvedTheme = THEME_ID_SET.has(themeId) ? themeId : DEFAULT_THEME_ID;
+  document.body.dataset.theme = resolvedTheme;
+  document.body.classList.add("theme-ready");
+  updateMetaThemeColor(resolvedTheme);
+}
+
+function updateMetaThemeColor(themeId) {
+  const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+  if (!metaThemeColor) {
+    return;
+  }
+
+  const resolvedColor = THEME_META_COLOR[themeId] || THEME_META_COLOR[DEFAULT_THEME_ID];
+  metaThemeColor.setAttribute("content", resolvedColor);
+}
+
+function getCurrentTheme() {
+  return THEME_OPTIONS.find((theme) => theme.id === state.prefs.themeId) || THEME_OPTIONS[0];
 }
 
 function generateLearnerSecret() {
