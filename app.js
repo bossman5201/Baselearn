@@ -67,11 +67,50 @@ const THEME_META_COLOR = {
   "ocean-prism": "#0e7490"
 };
 
+const ICONS = {
+  track: `
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M4 6.5h16M4 12h10M4 17.5h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+      <circle cx="18" cy="12" r="2.5" fill="currentColor" opacity="0.18" />
+    </svg>
+  `,
+  quiz: `
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M6 5.5h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H10l-4 3v-3H6a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="1.6" />
+      <path d="M9.4 9.3a2.6 2.6 0 1 1 3.6 2.4c-.9.4-1.4.9-1.4 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+      <circle cx="12" cy="16.6" r="1" fill="currentColor" />
+    </svg>
+  `,
+  certificate: `
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M7 4h10a2 2 0 0 1 2 2v8a3 3 0 0 1-3 3h-2l-4 3v-3H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="1.6" />
+      <path d="M12 8.5l1.1 2.1 2.4.3-1.7 1.6.4 2.3-2.2-1.2-2.2 1.2.4-2.3-1.7-1.6 2.4-.3z" fill="currentColor" opacity="0.75" />
+    </svg>
+  `,
+  progress: `
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M5 17l4-4 3 3 6-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+      <circle cx="6" cy="17" r="2" fill="currentColor" opacity="0.2" />
+    </svg>
+  `,
+  shield: `
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M12 3l7 3v6c0 4.4-3 7.8-7 9-4-1.2-7-4.6-7-9V6l7-3Z" fill="none" stroke="currentColor" stroke-width="1.6" />
+      <path d="M9 12.3l2 2.2 4-4.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+    </svg>
+  `
+};
+
 const state = {
   route: { page: "home", id: null },
   searchTerm: "",
   quizResults: loadJson(STORAGE_KEYS.quizResults, {}),
   quizUi: {},
+  ui: {
+    banner: null,
+    bannerType: "info",
+    listLimits: {}
+  },
   progress: loadJson(STORAGE_KEYS.progress, { lessons: {} }),
   certificates: loadJson(STORAGE_KEYS.certificates, {}),
   prefs: loadJson(STORAGE_KEYS.prefs, { disclaimerSeen: false, themeId: DEFAULT_THEME_ID }),
@@ -160,28 +199,33 @@ appEl.addEventListener("click", (event) => {
   const id = actionEl.dataset.id;
 
   if (action === "open-track") {
+    clearBanner();
     navigate(`track/${id}`);
     return;
   }
 
   if (action === "open-lesson") {
+    clearBanner();
     navigate(`lesson/${id}`);
     return;
   }
 
   if (action === "start-quiz") {
     state.quizUi[id] = { forceRetake: true };
+    clearBanner();
     navigate(`quiz/${id}`);
     return;
   }
 
   if (action === "open-next") {
+    clearBanner();
     navigate(`lesson/${id}`);
     return;
   }
 
   if (action === "retry-quiz") {
     state.quizUi[id] = { forceRetake: true };
+    clearBanner();
     render();
     return;
   }
@@ -192,7 +236,31 @@ appEl.addEventListener("click", (event) => {
   }
 
   if (action === "open-certs") {
+    clearBanner();
     navigate("certs");
+    return;
+  }
+
+  if (action === "dismiss-onboarding") {
+    state.prefs.disclaimerSeen = true;
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "dismiss-banner") {
+    clearBanner();
+    render();
+    return;
+  }
+
+  if (action === "show-more") {
+    const listKey = actionEl.dataset.list || "";
+    const step = Number.parseInt(actionEl.dataset.step || "0", 10);
+    if (listKey && Number.isFinite(step) && step > 0) {
+      setListLimit(listKey, getListLimit(listKey, 0) + step);
+      render();
+    }
     return;
   }
 
@@ -206,7 +274,8 @@ appEl.addEventListener("click", (event) => {
       state.wallet.status = "disconnected";
       state.wallet.message = `Wallet connect failed: ${error.message}`;
       render();
-      window.alert(`Wallet connect failed: ${error.message}`);
+      setBanner("error", `Wallet connect failed: ${error.message}`);
+      render();
     });
     return;
   }
@@ -266,7 +335,8 @@ appEl.addEventListener("submit", async (event) => {
     const learnerId = normalizeLearnerId(rawLearnerId);
 
     if (!learnerId) {
-      window.alert("Learner ID must be 3 to 40 characters using only letters, numbers, '-' or '_'.");
+      setBanner("error", "Learner ID must be 3 to 40 characters using only letters, numbers, '-' or '_'.");
+      render();
       return;
     }
 
@@ -300,22 +370,26 @@ appEl.addEventListener("submit", async (event) => {
   }
 
   if (!state.account.learnerId) {
-    window.alert("Set your learner ID first to submit quizzes.");
+    setBanner("warn", "Set your learner ID first to submit quizzes.");
+    render();
     return;
   }
 
   if (state.progress.lessons[lessonId]?.passed) {
-    window.alert("You already passed this quiz. Continue to the next lesson.");
+    setBanner("info", "You already passed this quiz. Continue to the next lesson.");
+    render();
     return;
   }
 
   if (!state.account.learnerSecret) {
-    window.alert("Learner session not initialized. Re-save your learner ID.");
+    setBanner("error", "Learner session not initialized. Re-save your learner ID.");
+    render();
     return;
   }
 
   if (!state.cloud.storageReady) {
-    window.alert("Cloud storage is required for secure quiz grading. Configure backend storage first.");
+    setBanner("error", "Cloud storage is required for secure quiz grading. Configure backend storage first.");
+    render();
     return;
   }
 
@@ -389,7 +463,8 @@ appEl.addEventListener("submit", async (event) => {
     state.cloud.mode = "error";
     state.cloud.message = `Progress sync failed: ${error.message}`;
     render();
-    window.alert(`Quiz submission failed: ${error.message}`);
+    setBanner("error", `Quiz submission failed: ${error.message}`);
+    render();
   } finally {
     if (form.isConnected) {
       form.dataset.submitting = "0";
@@ -405,46 +480,46 @@ function render() {
   renderNav();
 
   if (state.route.page === "home") {
-    appEl.innerHTML = renderHome();
+    appEl.innerHTML = renderWithBanner(renderHome());
     return;
   }
 
   if (state.route.page === "tracks") {
-    appEl.innerHTML = renderTracks();
+    appEl.innerHTML = renderWithBanner(renderTracks());
     return;
   }
 
   if (state.route.page === "track") {
-    appEl.innerHTML = renderTrackDetails(state.route.id);
+    appEl.innerHTML = renderWithBanner(renderTrackDetails(state.route.id));
     return;
   }
 
   if (state.route.page === "lesson") {
-    appEl.innerHTML = renderLesson(state.route.id);
+    appEl.innerHTML = renderWithBanner(renderLesson(state.route.id));
     return;
   }
 
   if (state.route.page === "quiz") {
-    appEl.innerHTML = renderQuiz(state.route.id);
+    appEl.innerHTML = renderWithBanner(renderQuiz(state.route.id));
     return;
   }
 
   if (state.route.page === "progress") {
-    appEl.innerHTML = renderProgress();
+    appEl.innerHTML = renderWithBanner(renderProgress());
     return;
   }
 
   if (state.route.page === "certs") {
-    appEl.innerHTML = renderCertificates();
+    appEl.innerHTML = renderWithBanner(renderCertificates());
     return;
   }
 
   if (state.route.page === "about") {
-    appEl.innerHTML = renderAbout();
+    appEl.innerHTML = renderWithBanner(renderAbout());
     return;
   }
 
-  appEl.innerHTML = renderHome();
+  appEl.innerHTML = renderWithBanner(renderHome());
 }
 
 function renderNav() {
@@ -466,13 +541,188 @@ function renderNav() {
   });
 }
 
+function setBanner(type, message) {
+  if (!message) {
+    return;
+  }
+  state.ui.bannerType = type || "info";
+  state.ui.banner = message;
+}
+
+function clearBanner() {
+  state.ui.banner = null;
+}
+
+function renderSystemBanner() {
+  if (!state.ui.banner) {
+    return "";
+  }
+
+  return `
+    <section class="card system-banner ${escapeHtml(state.ui.bannerType || "info")}">
+      <div class="banner-copy">
+        <strong>${escapeHtml(getBannerTitle(state.ui.bannerType))}:</strong>
+        <span>${escapeHtml(state.ui.banner)}</span>
+      </div>
+      <button class="ghost-button banner-dismiss" data-action="dismiss-banner" type="button">Dismiss</button>
+    </section>
+  `;
+}
+
+function getBannerTitle(type) {
+  const safe = String(type || "").toLowerCase();
+  if (safe === "error") return "Action required";
+  if (safe === "success") return "Success";
+  if (safe === "warn") return "Heads up";
+  return "Update";
+}
+
+function renderWithBanner(content) {
+  return `${renderSystemBanner()}${content}`;
+}
+
+function renderIcon(name) {
+  return ICONS[name] || "";
+}
+
+function renderTitle(iconName, text, tag = "h2") {
+  const safeTag = ["h2", "h3", "h4"].includes(tag) ? tag : "h2";
+  return `
+    <div class="title-row">
+      <span class="title-icon">${renderIcon(iconName)}</span>
+      <${safeTag}>${escapeHtml(text)}</${safeTag}>
+    </div>
+  `;
+}
+
+function renderSectionDivider() {
+  return `<div class="section-divider" aria-hidden="true"></div>`;
+}
+
+function renderOnboarding() {
+  if (state.prefs.disclaimerSeen) {
+    return "";
+  }
+
+  return `
+    <section class="card onboarding">
+      ${renderTitle("shield", "Quick Start")}
+      <ol class="onboarding-list">
+        <li>Create a learner ID to save progress across devices.</li>
+        <li>Complete lessons and quizzes to unlock certificates.</li>
+        <li>Connect wallet only when minting or withdrawing.</li>
+      </ol>
+      <div class="action-row">
+        <button class="primary-button" data-action="dismiss-onboarding" type="button">Got it</button>
+        <button class="secondary-button" data-action="open-certs" type="button">View Certificates</button>
+      </div>
+    </section>
+  `;
+}
+
+function getOverallProgress() {
+  const completed = LESSONS.filter((lesson) => isLessonComplete(lesson.id)).length;
+  const total = LESSONS.length;
+  const percent = total ? Math.round((completed / total) * 100) : 0;
+  return { completed, total, percent };
+}
+
+function renderProgressBanner(trackId) {
+  const overall = getOverallProgress();
+  const trackProgress = trackId ? getTrackCompletion(trackId) : null;
+
+  return `
+    <section class="card progress-banner">
+      <div class="progress-row">
+        <span>Overall progress</span>
+        <strong>${overall.percent}%</strong>
+      </div>
+      <div class="progress-bar">
+        <span style="width:${overall.percent}%;"></span>
+      </div>
+      ${
+        trackProgress
+          ? `
+            <div class="progress-row">
+              <span>Track progress</span>
+              <strong>${trackProgress.percent}%</strong>
+            </div>
+            <div class="progress-bar">
+              <span style="width:${trackProgress.percent}%;"></span>
+            </div>
+          `
+          : ""
+      }
+    </section>
+  `;
+}
+
+function getListLimit(key, fallback) {
+  if (!key) return fallback;
+  const current = state.ui.listLimits[key];
+  if (Number.isFinite(current) && current > 0) {
+    return current;
+  }
+  if (Number.isFinite(fallback) && fallback > 0) {
+    state.ui.listLimits[key] = fallback;
+    return fallback;
+  }
+  return 0;
+}
+
+function setListLimit(key, value) {
+  if (!key) return;
+  const safeValue = Number.isFinite(value) && value > 0 ? value : 0;
+  state.ui.listLimits[key] = safeValue;
+}
+
+function renderLimitedList({
+  items,
+  key,
+  initial,
+  step,
+  renderItem,
+  emptyHtml,
+  containerClass,
+  containerTag = "div"
+}) {
+  const limit = getListLimit(key, initial);
+  const visible = items.slice(0, limit);
+  const hasMore = items.length > visible.length;
+  const listHtml = visible.length ? visible.map(renderItem).join("") : emptyHtml;
+  const moreHtml = hasMore
+    ? `
+        <div class="load-more">
+          <button class="ghost-button" data-action="show-more" data-list="${escapeHtml(key)}" data-step="${step}" type="button">
+            Show more (${items.length - visible.length} remaining)
+          </button>
+        </div>
+      `
+    : "";
+  return `
+    <${containerTag} class="${escapeHtml(containerClass)}">
+      ${listHtml}
+    </${containerTag}>
+    ${moreHtml}
+  `;
+}
+
 function renderHome() {
   const nextLesson = getNextLesson();
   const matches = searchLessons(state.searchTerm);
+  const searchList = renderLimitedList({
+    items: matches,
+    key: "home-search",
+    initial: 6,
+    step: 6,
+    renderItem: (lesson) => renderLessonCard(lesson),
+    emptyHtml: document.getElementById("empty-state-template").innerHTML,
+    containerClass: "lesson-list"
+  });
 
   return `
     <section class="card hero">
-      <h2>Learn Base safely, one lesson at a time.</h2>
+      ${renderTitle("shield", "Learn Base safely, one lesson at a time.")}
       <p>This app is education-first: no required swaps, no required bridge actions, and no forced money movement to learn.</p>
       <div class="badge-row">
         <span class="badge safe">No required onchain actions</span>
@@ -485,29 +735,36 @@ function renderHome() {
       </div>
     </section>
 
+    ${renderOnboarding()}
+
+    ${renderSectionDivider()}
+
     ${renderThemeStudio("home")}
 
     ${renderAccountCard()}
 
     <section class="card search-box">
+      ${renderTitle("track", "Search lessons", "h3")}
       <label for="search-input">Search lesson title or topic</label>
       <input id="search-input" class="search-input" placeholder="Try: gas, scams, NFTs, manifest" value="${escapeHtml(state.searchTerm)}" />
     </section>
 
     ${nextLesson ? renderContinueCard(nextLesson) : ""}
 
+    ${renderSectionDivider()}
+
     <section class="card">
-      <h2>Tracks</h2>
+      ${renderTitle("track", "Tracks")}
       <div class="track-grid">
         ${TRACKS.map((track) => renderTrackCard(track)).join("")}
       </div>
     </section>
 
+    ${renderSectionDivider()}
+
     <section class="card">
-      <h2>Search Results</h2>
-      <div class="lesson-list">
-        ${matches.length ? matches.map((lesson) => renderLessonCard(lesson)).join("") : document.getElementById("empty-state-template").innerHTML}
-      </div>
+      ${renderTitle("track", "Search Results")}
+      ${searchList}
     </section>
   `;
 }
@@ -520,8 +777,9 @@ function renderAccountCard() {
   if (!learnerId) {
     return `
       <section class="card">
-        <h2>Your Learner ID</h2>
+        ${renderTitle("progress", "Your Learner ID")}
         <p>Create a learner ID to keep your progress synced across devices once backend storage is configured.</p>
+        <p class="hint-text">Your learner secret stays on this device. Share your learner ID publicly if needed.</p>
         <p class="footer-note">${escapeHtml(cloudStatus)}</p>
         <form data-account-form class="account-form">
           <input class="search-input" type="text" name="learnerId" minlength="3" maxlength="40" placeholder="example: founder_01" required />
@@ -535,7 +793,7 @@ function renderAccountCard() {
 
   return `
     <section class="card">
-      <h2>Your Learner ID</h2>
+      ${renderTitle("progress", "Your Learner ID")}
       <p><strong>${escapeHtml(learnerId)}</strong></p>
       <p class="footer-note">${escapeHtml(cloudStatus)}</p>
       <div class="action-row">
@@ -562,7 +820,7 @@ function renderContinueCard(lesson) {
 function renderTracks() {
   return `
     <section class="card">
-      <h2>All Learning Tracks</h2>
+      ${renderTitle("track", "All Learning Tracks")}
       <p>Choose the path that matches your level. You can complete tracks in any order.</p>
       <div class="track-grid">
         ${TRACKS.map((track) => renderTrackCard(track)).join("")}
@@ -575,7 +833,10 @@ function renderTrackCard(track) {
   const completion = getTrackCompletion(track.id);
   return `
     <article class="track-card">
-      <h3>${escapeHtml(track.title)}</h3>
+      <div class="title-row compact">
+        <span class="title-icon">${renderIcon("track")}</span>
+        <h3>${escapeHtml(track.title)}</h3>
+      </div>
       <p>${escapeHtml(track.description)}</p>
       <div class="meta-row">
         <span>${track.lessonIds.length} lessons</span>
@@ -622,20 +883,53 @@ function renderTrackDetails(trackId) {
 
   const lessons = track.lessonIds.map((id) => LESSON_MAP.get(id)).filter(Boolean);
   const completion = getTrackCompletion(trackId);
+  const roadmap = renderTrackRoadmap(lessons, trackId);
 
   return `
+    ${renderProgressBanner(trackId)}
+
     <section class="card">
-      <h2>${escapeHtml(track.title)}</h2>
+      ${renderTitle("track", track.title)}
       <p>${escapeHtml(track.description)}</p>
       <div class="meta-row">
         <span>${completion.completed}/${completion.total} complete</span>
         <span>${completion.percent}%</span>
       </div>
-      <div class="lesson-list">
-        ${lessons.map((lesson) => renderLessonCard(lesson)).join("")}
-      </div>
+      ${renderSectionDivider()}
+      ${roadmap}
     </section>
   `;
+}
+
+function renderTrackRoadmap(lessons, trackId) {
+  const firstIncompleteIndex = lessons.findIndex((lesson) => !isLessonComplete(lesson.id));
+  const activeIndex = firstIncompleteIndex === -1 ? lessons.length - 1 : firstIncompleteIndex;
+  const key = `track-roadmap:${trackId}`;
+
+  return renderLimitedList({
+    items: lessons,
+    key,
+    initial: 8,
+    step: 6,
+    renderItem: (lesson, index) => {
+      const completed = isLessonComplete(lesson.id);
+      const isActive = index === activeIndex;
+      const status = completed ? "Complete" : isActive ? "Next" : "Upcoming";
+      const statusClass = completed ? "complete" : isActive ? "active" : "locked";
+      return `
+        <button class="roadmap-item ${statusClass}" data-action="open-lesson" data-id="${lesson.id}" type="button">
+          <span class="roadmap-index">${index + 1}</span>
+          <div class="roadmap-copy">
+            <strong>${escapeHtml(lesson.title)}</strong>
+            <span>${escapeHtml(lesson.summary)}</span>
+          </div>
+          <span class="roadmap-status">${status}</span>
+        </button>
+      `;
+    },
+    emptyHtml: "<p>No lessons found for this track.</p>",
+    containerClass: "track-roadmap"
+  });
 }
 function renderLesson(lessonId) {
   const lesson = LESSON_MAP.get(lessonId);
@@ -645,13 +939,15 @@ function renderLesson(lessonId) {
   const completed = isLessonComplete(lesson.id);
 
   return `
+    ${renderProgressBanner(lesson.trackId)}
+
     <section class="card">
       <div class="lesson-chip-row">
         <span class="badge track">${escapeHtml(track.title)}</span>
         ${lesson.sponsor ? '<span class="badge sponsored">Sponsored</span>' : ""}
         ${completed ? '<span class="badge safe">Completed</span>' : ""}
       </div>
-      <h2>${escapeHtml(lesson.title)}</h2>
+      ${renderTitle("track", lesson.title)}
       <p>${escapeHtml(lesson.summary)}</p>
       <div class="meta-row">
         <span>${escapeHtml(lesson.duration)}</span>
@@ -704,8 +1000,10 @@ function renderQuiz(lessonId) {
 
   if (passed) {
     return `
+      ${renderProgressBanner(lesson.trackId)}
+
       <section class="card">
-        <h2>${escapeHtml(lesson.title)} Quiz</h2>
+        ${renderTitle("quiz", `${lesson.title} Quiz`)}
         <p>You already passed this quiz. Repeating it is not required.</p>
         ${completionNote}
         ${result ? renderQuizResult(result) : ""}
@@ -719,8 +1017,10 @@ function renderQuiz(lessonId) {
 
   if (result && !quizUi.forceRetake) {
     return `
+      ${renderProgressBanner(lesson.trackId)}
+
       <section class="card">
-        <h2>${escapeHtml(lesson.title)} Quiz</h2>
+        ${renderTitle("quiz", `${lesson.title} Quiz`)}
         <p>Review your latest attempt before retrying.</p>
         ${renderQuizResult(result)}
         <div class="action-row">
@@ -732,8 +1032,10 @@ function renderQuiz(lessonId) {
   }
 
   return `
+    ${renderProgressBanner(lesson.trackId)}
+
     <section class="card">
-      <h2>${escapeHtml(lesson.title)} Quiz</h2>
+      ${renderTitle("quiz", `${lesson.title} Quiz`)}
       <p>Pass score: ${PASSING_SCORE}% or higher.</p>
       ${completionNote}
       ${result ? renderQuizResult(result) : ""}
@@ -800,10 +1102,20 @@ function renderProgress() {
   const storageMessage = canSyncCloud()
     ? `Cloud sync enabled for learner ID: ${state.account.learnerId}`
     : "Local browser storage mode. Configure backend storage to enable cloud sync.";
+  const completedList = renderLimitedList({
+    items: completedLessons,
+    key: "progress-lessons",
+    initial: 6,
+    step: 6,
+    renderItem: (lesson) => `<li>${escapeHtml(lesson.title)}</li>`,
+    emptyHtml: "<li>No lessons completed yet.</li>",
+    containerClass: "progress-list",
+    containerTag: "ul"
+  });
 
   return `
     <section class="card">
-      <h2>Your Progress</h2>
+      ${renderTitle("progress", "Your Progress")}
       <p>${escapeHtml(storageMessage)}</p>
       <div class="stat-grid">
         <article class="stat-card">
@@ -823,11 +1135,10 @@ function renderProgress() {
           <p>Certificates claimed</p>
         </article>
       </div>
+      ${renderSectionDivider()}
       <div class="copy-block">
         <h4>Completed Lessons</h4>
-        <ul>
-          ${completedLessons.length ? completedLessons.map((lesson) => `<li>${escapeHtml(lesson.title)}</li>`).join("") : "<li>No lessons completed yet.</li>"}
-        </ul>
+        ${completedList}
       </div>
       <div class="action-row">
         <button class="secondary-button" data-action="open-certs" type="button">Check Certificate Eligibility</button>
@@ -843,7 +1154,7 @@ function renderCertificates() {
     ${renderWalletCard()}
 
     <section class="card">
-      <h2>Certificates</h2>
+      ${renderTitle("certificate", "Certificates")}
       <p>Lessons stay free. Certificates are optional paid credentials on Base mainnet.</p>
       <div class="cert-grid">
         ${CERTIFICATES.map((cert) => renderCertificateCard(cert)).join("")}
@@ -861,6 +1172,16 @@ function renderCertificateCard(cert) {
   const owned = Boolean(state.certificates[cert.id]);
   const priceLabel = getCertificatePriceLabel(cert.id, cert.priceUsd);
   const onchainReady = state.contract.configured;
+  const overall = getOverallProgress();
+  const trackProgress = cert.trackId === "all"
+    ? overall
+    : getTrackCompletion(cert.trackId);
+  const requirementLabel = cert.trackId === "all"
+    ? `${overall.completed}/${overall.total} lessons complete`
+    : `${trackProgress.completed}/${trackProgress.total} lessons complete`;
+  const progressPercent = cert.trackId === "all"
+    ? overall.percent
+    : trackProgress.percent;
 
   const status = owned
     ? "Claimed"
@@ -880,8 +1201,18 @@ function renderCertificateCard(cert) {
 
   return `
     <article class="cert-card">
-      <h3>${escapeHtml(cert.name)}</h3>
+      <div class="title-row compact">
+        <span class="title-icon">${renderIcon("certificate")}</span>
+        <h3>${escapeHtml(cert.name)}</h3>
+      </div>
       <p>${escapeHtml(description)}</p>
+      <div class="progress-row">
+        <span>${escapeHtml(requirementLabel)}</span>
+        <strong>${progressPercent}%</strong>
+      </div>
+      <div class="progress-bar small">
+        <span style="width:${progressPercent}%;"></span>
+      </div>
       <div class="meta-row">
         <span>Status: ${status}</span>
         <span>Type: ${escapeHtml(cert.type)}</span>
@@ -903,7 +1234,7 @@ function renderWalletCard() {
 
   return `
     <section class="card">
-      <h2>Wallet</h2>
+      ${renderTitle("certificate", "Wallet")}
       <p>Connect only when minting or withdrawing. Learning flow does not require wallet connection.</p>
       <div class="meta-row">
         <span>Status: ${escapeHtml(state.wallet.status)}</span>
@@ -959,7 +1290,7 @@ function renderAbout() {
     ${renderThemeStudio("about")}
 
     <section class="card">
-      <h2>About Learn Base</h2>
+      ${renderTitle("shield", "About Learn Base")}
       <p>Learn Base is a safety-first education mini app. It teaches concepts before actions and avoids forcing users into risky flows.</p>
       <div class="copy-block">
         <h4>Sponsored Lesson Policy</h4>
@@ -1085,27 +1416,32 @@ async function claimCertificate(certId) {
   if (!cert) return;
 
   if (!isCertificateEligible(cert)) {
-    window.alert("Complete required lessons before claiming this certificate.");
+    setBanner("warn", "Complete required lessons before claiming this certificate.");
+    render();
     return;
   }
 
   if (state.certificates[cert.id]) {
-    window.alert("Certificate already claimed.");
+    setBanner("info", "Certificate already claimed.");
+    render();
     return;
   }
 
   if (!state.contract.configured) {
-    window.alert("Certificate contract is not configured yet.");
+    setBanner("error", "Certificate contract is not configured yet.");
+    render();
     return;
   }
 
   if (!state.account.learnerId) {
-    window.alert("Set your learner ID first so your progress can be verified before mint.");
+    setBanner("warn", "Set your learner ID first so your progress can be verified before mint.");
+    render();
     return;
   }
 
   if (!state.cloud.storageReady) {
-    window.alert("Cloud storage is not ready yet. Configure Neon in Vercel before minting.");
+    setBanner("error", "Cloud storage is not ready yet. Configure Neon in Vercel before minting.");
+    render();
     return;
   }
 
@@ -1168,12 +1504,13 @@ async function claimCertificate(certId) {
     await loadContractStatus();
     state.wallet.message = "Certificate minted successfully.";
     render();
-
-    window.alert(`Certificate minted: ${cert.name}`);
+    setBanner("success", `Certificate minted: ${cert.name}`);
+    render();
   } catch (error) {
     state.wallet.message = `Mint failed: ${error.message}`;
     render();
-    window.alert(`Mint failed: ${error.message}`);
+    setBanner("error", `Mint failed: ${error.message}`);
+    render();
     return;
   }
 }
@@ -1667,18 +2004,21 @@ async function syncAllProgressToCloud() {
 
 async function withdrawAllRevenue() {
   if (state.wallet.status !== "connected" || !state.wallet.address) {
-    window.alert("Connect admin wallet first.");
+    setBanner("warn", "Connect admin wallet first.");
+    render();
     return;
   }
 
   const adminWallet = (state.contract.adminWallet || APP_CONFIG.adminWallet || "").toLowerCase();
   if (!adminWallet || state.wallet.address.toLowerCase() !== adminWallet) {
-    window.alert("Only deployer/admin wallet can withdraw.");
+    setBanner("error", "Only deployer/admin wallet can withdraw.");
+    render();
     return;
   }
 
   if (!state.contract.configured || !state.contract.balanceWei || state.contract.balanceWei === "0") {
-    window.alert("No withdrawable balance.");
+    setBanner("info", "No withdrawable balance.");
+    render();
     return;
   }
 
@@ -1722,11 +2062,13 @@ async function withdrawAllRevenue() {
     state.wallet.message = "Withdraw completed.";
     await loadContractStatus();
     render();
-    window.alert(`Withdraw complete. Tx: ${txHash}`);
+    setBanner("success", `Withdraw complete. Tx: ${shortTx(txHash)}`);
+    render();
   } catch (error) {
     state.wallet.message = `Withdraw failed: ${error.message}`;
     render();
-    window.alert(`Withdraw failed: ${error.message}`);
+    setBanner("error", `Withdraw failed: ${error.message}`);
+    render();
   }
 }
 
@@ -1755,6 +2097,7 @@ async function loadCloudProfile() {
 
     state.cloud.mode = "error";
     state.cloud.message = `Cloud sync failed: ${error.message}`;
+    setBanner("warn", "Cloud sync failed. Your local progress is safe; sync later.");
     render();
   }
 }
